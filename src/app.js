@@ -65,12 +65,59 @@ function toast(msg, bad) {
   toastTimer = setTimeout(() => { el.hidden = true; }, bad ? 6000 : 3500);
 }
 
+// ---------- smooth panels ----------
+const reduceMotion = () => window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const PANEL_MS = 260;
+function openPanel(el) {
+  clearTimeout(el._closeTimer);
+  el.hidden = false;
+  void el.offsetWidth;            // start from the closed position, then animate
+  el.classList.add('open');
+}
+function closePanel(el, after) {
+  if (el.hidden) { if (after) after(); return; }
+  el.classList.remove('open');
+  clearTimeout(el._closeTimer);
+  el._closeTimer = setTimeout(() => { el.hidden = true; if (after) after(); }, reduceMotion() ? 0 : PANEL_MS);
+}
+
+// The last summary, kept on this computer so the deck paints at once on launch and
+// fills in when the fresh one arrives. No token, no push endpoints.
+const CACHE_KEY = 'smart-last-summary';
+function saveCache(d) {
+  try {
+    const copy = Object.assign({}, d, { notifications: { deviceCount: (d.notifications || {}).deviceCount, telegramMuted: (d.notifications || {}).telegramMuted } });
+    localStorage.setItem(CACHE_KEY, JSON.stringify(copy));
+  } catch (e) {}
+}
+function readCache() {
+  try { return JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); } catch (e) { return null; }
+}
+function clearCache() { try { localStorage.removeItem(CACHE_KEY); } catch (e) {} }
+
+// The window starts hidden and is shown after the first paint, so it never flashes empty.
+let shown = false;
+function showWindow() {
+  if (shown) return;
+  shown = true;
+  const go = () => requestAnimationFrame(() => requestAnimationFrame(() => { if (T) call('ready').catch(() => {}); }));
+  (document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve()).then(go, go);
+}
+
 function confirmBox(text, yes) {
   return new Promise((resolve) => {
     const wrap = document.createElement('div');
     wrap.innerHTML = '<div class="scrim"></div><div class="drawer narrow dialog" role="alertdialog"><div class="drawer-body"><p style="font-size:15px">' + esc(text) + '</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="ghost" data-a="no">Cancel</button><button class="primary" data-a="yes">' + esc(yes || 'Yes, do it') + '</button></div></div></div>';
     document.body.appendChild(wrap);
-    const done = (v) => { wrap.remove(); document.removeEventListener('keydown', key); resolve(v); };
+    const sheet = wrap.querySelector('.drawer'), sc = wrap.querySelector('.scrim');
+    void sheet.offsetWidth;
+    sheet.classList.add('open'); sc.classList.add('open');
+    const done = (v) => {
+      document.removeEventListener('keydown', key);
+      sheet.classList.remove('open'); sc.classList.remove('open');
+      setTimeout(() => wrap.remove(), reduceMotion() ? 0 : PANEL_MS);
+      resolve(v);
+    };
     const key = (e) => { if (e.key === 'Escape') done(false); };
     document.addEventListener('keydown', key);
     wrap.addEventListener('click', (e) => { const a = e.target.dataset && e.target.dataset.a; if (a) done(a === 'yes'); else if (e.target.classList.contains('scrim')) done(false); });
@@ -130,17 +177,33 @@ async function boot() {
   try {
     if (T && T.app) $('versionLine').textContent = 'Smart desktop ' + (await T.app.getVersion());
   } catch (e) {}
-  const cfg = await call('get_config');
-  $('baseInput').value = cfg.base_url || cfg.default_base;
-  if (!cfg.connected) return showConnect('');
+  let cfg;
+  try { cfg = await call('get_config'); } catch (e) { cfg = { connected: false, base_url: '' }; }
+  $('baseInput').value = cfg.base_url || cfg.default_base || '';
+  if (!cfg.connected) { showConnect(''); showWindow(); return; }
+  const cached = readCache();
   showDeck();
+  if (cached) { data = cached; render(); setStale(true); }
+  else $('deck').classList.add('waiting');
+  showWindow();
   refresh();
+}
+
+function setStale(on) {
+  $('deck').classList.toggle('stale', !!on);
+}
+
+function swapScreen(show, hide) {
+  hide.hidden = true;
+  show.hidden = false;
+  show.classList.remove('enter');
+  void show.offsetWidth;
+  show.classList.add('enter');
 }
 
 function showConnect(msg) {
   clearInterval(timer);
-  $('deck').hidden = true;
-  $('connect').hidden = false;
+  swapScreen($('connect'), $('deck'));
   $('stateLine').textContent = '';
   $('stateChip').hidden = true;
   $('refreshBtn').hidden = true;
@@ -152,8 +215,7 @@ function showConnect(msg) {
 }
 
 function showDeck() {
-  $('connect').hidden = true;
-  $('deck').hidden = false;
+  if ($('deck').hidden) swapScreen($('deck'), $('connect'));
   $('refreshBtn').hidden = false;
   $('settingsBtn').hidden = false;
   clearInterval(timer);
@@ -170,9 +232,11 @@ async function connect(e) {
     const s = await call('save_connection', { baseUrl: $('baseInput').value, token: $('tokenInput').value });
     $('tokenInput').value = '';
     data = s;
+    saveCache(s);
     showDeck();
     render();
-    loadOpts(true);
+    loadOpts();
+    prefetchTv();
     toast('Connected. The token is in the keychain.');
   } catch (err) {
     $('connectErr').innerHTML = shape('warning') + '<span>' + esc(String(err && err.message || err)) + '</span>';
@@ -185,23 +249,22 @@ async function connect(e) {
 async function openSettings() {
   const cfg = await call('get_config');
   $('settingsBase').textContent = cfg.base_url;
-  $('scrim').hidden = false;
-  $('settings').hidden = false;
+  openPanel($('scrim'));
+  openPanel($('settings'));
 }
 
 async function signOut() {
   if (!(await confirmBox('Forget the admin token on this computer? You\'ll need to paste it again to reconnect.', 'Forget it'))) return;
   try { await call('forget'); } catch (e) { return toast(String(e), true); }
   closeDrawers();
-  data = null; opts = null;
+  data = null; opts = null; clearCache();
   showConnect('Signed out. The token was removed from the keychain.');
 }
 
 function closeDrawers() {
-  $('scrim').hidden = true;
-  $('drawer').hidden = true;
-  $('drawerFoot').hidden = true;
-  $('settings').hidden = true;
+  closePanel($('scrim'));
+  closePanel($('drawer'));
+  closePanel($('settings'));
   openHousehold = null;
 }
 
@@ -213,8 +276,11 @@ async function refresh(manual) {
   $('refreshBtn').classList.add('spin');
   try {
     data = await call('summary');
+    saveCache(data);
     setOffline('');
+    setStale(false);
     render();
+    if (!tvOptions) prefetchTv();
     notifyFlip();
     if (Date.now() - optsAt > OPTS_MS) loadOpts();
     if (manual) toast('Up to date.');
@@ -224,6 +290,10 @@ async function refresh(manual) {
     refreshing = false;
     $('refreshBtn').classList.remove('spin');
   }
+}
+
+async function prefetchTv() {
+  try { const r = await act({ action: 'tv_options' }); if (r && r.ok) tvOptions = r; } catch (e) {}
 }
 
 async function loadOpts() {
@@ -260,7 +330,11 @@ function totals() {
   return t;
 }
 
+let rendered = false;
 function render() {
+  const deck = $('deck');
+  if (!rendered) { rendered = true; deck.classList.remove('waiting'); deck.classList.add('rise'); setTimeout(() => deck.classList.remove('rise'), 900); }
+  else deck.classList.remove('waiting');
   setDateCap(new Date());
   renderState();
   renderAttitude();
@@ -608,12 +682,21 @@ let draft = null;
 async function openHouseholdDrawer(name) {
   openHousehold = name;
   $('drawerTitle').textContent = name;
-  $('scrim').hidden = false;
-  $('drawer').hidden = false;
-  $('drawerBody').innerHTML = '<div class="hint">Loading…</div>';
-  $('drawerFoot').hidden = true;
+  $('drawerBody').scrollTop = 0;
+  const ready = tvOptions && opts;
+  if (ready) {
+    // Everything is already here: build the panel first so it slides in finished.
+    draft = JSON.parse(JSON.stringify((opts.tv && opts.tv[name] && opts.tv[name].setup) || {}));
+    renderDrawer();
+  } else {
+    $('drawerBody').innerHTML = '<div class="skel"></div><div class="skel"></div><div class="skel short"></div><div class="skel"></div>';
+    $('drawerFoot').hidden = true;
+  }
+  openPanel($('scrim'));
+  openPanel($('drawer'));
+  if (ready) return;
   try {
-    if (!tvOptions) { const r = await act({ action: 'tv_options' }); if (r && r.ok) tvOptions = r; }
+    if (!tvOptions) await prefetchTv();
     if (!opts) await loadOpts();
   } catch (e) { handleError(e); }
   if (openHousehold !== name) return;

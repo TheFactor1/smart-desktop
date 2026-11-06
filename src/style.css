@@ -241,7 +241,7 @@ html.down[data-theme=night] .top .logo{background-image:linear-gradient(100deg,v
 [data-theme=night] .icon-btn svg{stroke:var(--moon)}
 [data-theme=night] .icon-btn:hover{background:rgba(255,255,255,.09);border-color:var(--hair-b)}
 [data-theme=night] .deck{gap:var(--s3);padding:var(--s3)}
-[data-theme=night] .col{background:var(--frost);border:1px solid var(--hair)!important;border-radius:24px;backdrop-filter:blur(20px);box-shadow:inset 0 1px rgba(255,255,255,.1),0 20px 60px rgba(5,3,15,.25)}
+[data-theme=night] .col{background:var(--frost);border:1px solid var(--hair)!important;border-radius:24px;box-shadow:inset 0 1px rgba(255,255,255,.1),0 20px 60px rgba(5,3,15,.25)}
 [data-theme=night] .inst svg.att{filter:drop-shadow(0 0 24px rgba(94,234,212,.35))}
 html.down[data-theme=night] .inst svg.att{filter:drop-shadow(0 0 24px rgba(251,191,36,.35))}
 [data-theme=night] .big,[data-theme=night] .mid-n,[data-theme=night] .hh .n span,[data-theme=night] .stat b{font-weight:600;letter-spacing:-.03em}
@@ -257,9 +257,9 @@ html.down[data-theme=night] .inst svg.att{filter:drop-shadow(0 0 24px rgba(251,1
 [data-theme=night] .tape .cur.bad{background:var(--coral);color:var(--ink-glow)}
 [data-theme=night] .knob i{background:var(--frost);border:1px solid var(--hair-b)}
 [data-theme=night] .knob i::after{background:var(--moon)}
-[data-theme=night] .paper{border:1px solid var(--hair);border-radius:24px;backdrop-filter:blur(20px);margin:0 var(--s3) var(--s3);box-shadow:inset 0 1px rgba(255,255,255,.1)}
+[data-theme=night] .paper{border:1px solid var(--hair);border-radius:24px;margin:0 var(--s3) var(--s3);box-shadow:inset 0 1px rgba(255,255,255,.1)}
 [data-theme=night] .paper text{fill:var(--moon-dim)}
-[data-theme=night] .connect-card{background:var(--frost);border:1px solid var(--hair);border-radius:24px;backdrop-filter:blur(20px)}
+[data-theme=night] .connect-card{background:var(--frost);border:1px solid var(--hair);border-radius:24px;}
 [data-theme=night] input,[data-theme=night] select{background:var(--well);border:1px solid var(--hair);border-radius:14px;color:var(--moon)}
 [data-theme=night] select option{background:#1a1238;color:var(--moon)}
 [data-theme=night] input:focus,[data-theme=night] select:focus{outline:none;border-color:var(--lav);box-shadow:0 0 0 4px rgba(167,139,250,.2)}
@@ -267,8 +267,8 @@ html.down[data-theme=night] .inst svg.att{filter:drop-shadow(0 0 24px rgba(251,1
 [data-theme=night] .primary:hover{box-shadow:0 8px 26px rgba(167,139,250,.55)}
 [data-theme=night] .ghost{background:var(--frost);border:1px solid var(--hair);border-radius:14px;font-weight:500}
 [data-theme=night] .ghost:hover{border-color:var(--hair-b)}
-[data-theme=night] .scrim{background:rgba(5,3,15,.55);backdrop-filter:blur(6px)}
-[data-theme=night] .drawer{background:rgba(26,18,56,.86);backdrop-filter:blur(24px);border:1px solid var(--hair);border-radius:24px;box-shadow:0 -20px 80px rgba(5,3,15,.5)}
+[data-theme=night] .scrim{background:rgba(5,3,15,.6)}
+[data-theme=night] .drawer{background:rgba(24,17,52,.97);border:1px solid var(--hair);border-radius:24px;box-shadow:0 -20px 80px rgba(5,3,15,.5)}
 [data-theme=night] .drawer-head,[data-theme=night] .drawer-foot{border-color:var(--hair);background:transparent}
 [data-theme=night] .checkt td{border-top:1px solid var(--hair)}
 [data-theme=night] .yes{color:var(--sea)}
@@ -280,3 +280,34 @@ html.down[data-theme=night] .inst svg.att{filter:drop-shadow(0 0 24px rgba(251,1
 .theme-pick button[aria-pressed=true]{outline:3px solid var(--mustard);outline-offset:1px}
 [data-theme=night] .paper .cap::before{display:none}
 [data-theme=night] .big{font-size:64px}
+
+/* ---------- motion: short, springy, and only transform/opacity so it stays smooth ---------- */
+:root{--spring:cubic-bezier(.2,.9,.25,1.06);--ease-out:cubic-bezier(.2,.7,.2,1)}
+.scrim{opacity:0;transition:opacity .22s var(--ease-out)}
+.scrim.open{opacity:1}
+.drawer{opacity:0;transform:translate3d(32px,0,0);transition:transform .26s var(--spring),opacity .18s var(--ease-out);will-change:transform,opacity}
+.drawer.open{opacity:1;transform:none}
+.drawer.narrow:not(.dialog){transform:translate3d(0,-8px,0) scale(.98);transform-origin:top right}
+.drawer.narrow.open:not(.dialog){transform:none}
+.drawer.dialog{transform:translate3d(50%,24px,0)}
+.drawer.dialog.open{transform:translate3d(50%,0,0)}
+.enter{animation:fade-in .24s var(--ease-out)}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+.connect.enter .connect-card{animation:rise .34s var(--spring)}
+.deck.rise .col > *,.deck.rise .paper{animation:rise .36s var(--spring) both}
+.deck.rise .col > *:nth-child(2){animation-delay:30ms}
+.deck.rise .col > *:nth-child(3){animation-delay:60ms}
+.deck.rise .col > *:nth-child(4){animation-delay:90ms}
+.deck.rise .col > *:nth-child(n+5){animation-delay:120ms}
+.deck.rise .paper{animation-delay:120ms}
+@keyframes rise{from{opacity:0;transform:translate3d(0,8px,0)}to{opacity:1;transform:none}}
+/* waiting for the very first summary: quiet placeholders instead of an empty deck */
+.deck.waiting .col > *:not(.cap),.deck.waiting .paper > *{visibility:hidden}
+.deck.waiting .col::after{content:"";display:block;height:96px;border-radius:8px;background:linear-gradient(90deg,var(--card),rgba(255,255,255,.1),var(--card));background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+.skel{height:48px;border-radius:8px;background:linear-gradient(90deg,var(--card),rgba(255,255,255,.1),var(--card));background-size:200% 100%;animation:shimmer 1.2s linear infinite}
+.skel.short{width:60%}
+@keyframes shimmer{from{background-position:200% 0}to{background-position:-200% 0}}
+/* showing the saved copy while the fresh one loads */
+.deck.stale .counts,.deck.stale .orb{opacity:.75;transition:opacity .3s}
+.deck .counts,.deck .orb{transition:opacity .3s}
+@media (prefers-reduced-motion:reduce){.drawer,.drawer.open,.drawer.dialog,.drawer.dialog.open{transition:none}.deck.rise .col > *,.deck.rise .paper{animation:none}}

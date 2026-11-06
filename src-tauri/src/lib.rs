@@ -174,6 +174,13 @@ fn forget() -> Result<(), String> {
     }
 }
 
+/// The page calls this after its first paint, so the window never opens on an empty frame.
+#[tauri::command]
+fn ready(window: tauri::WebviewWindow) {
+    let _ = window.show();
+    let _ = window.set_focus();
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let client = reqwest::Client::builder()
@@ -184,7 +191,20 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .manage(Http(client))
-        .invoke_handler(tauri::generate_handler![get_config, save_connection, summary, action, forget])
+        .setup(|app| {
+            // If the page never says it's ready, show the window anyway.
+            let handle = app.handle().clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_millis(2500));
+                if let Some(w) = handle.get_webview_window("main") {
+                    if !w.is_visible().unwrap_or(true) {
+                        let _ = w.show();
+                    }
+                }
+            });
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![get_config, save_connection, summary, action, forget, ready])
         .run(tauri::generate_context!())
         .expect("error while running Smart");
 }
