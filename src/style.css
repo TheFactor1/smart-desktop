@@ -21,15 +21,20 @@
   --accent:#B4462A;                /* the one action colour: primary buttons, white text 5.45:1 */
   --mustard:#E9A23B;               /* caution, ink text 7.3:1 */
   --red:#B3261E;                   /* danger, 5.55:1 on cream */
+  /* instrument and chart colours, swapped by the theme */
+  --sky:#2A9D8F; --ground:#D1593A; --on-sky:#fff; --horizon:#fff; --symbol:#F4ECD8; --line:#2B2118; --grid:#ead9b8; --label:#6B4A2F;
   --s1:4px; --s2:8px; --s3:16px; --s4:24px; --s5:32px;
 }
 *{box-sizing:border-box}
 html,body{margin:0;height:100%;background:var(--walnut);color:var(--ink);font-family:"Jost",system-ui,sans-serif;font-size:14px}
 body{padding:var(--s2);overflow:hidden}
 button{font:inherit;color:inherit;cursor:pointer}
+/* Shared Smart rules: numbers line up, text wraps and never clips. */
+body{font-variant-numeric:tabular-nums}
+*{overflow-wrap:anywhere}
 [hidden]{display:none!important}
 
-.frame{height:100%;background:var(--cream);border-radius:16px;display:flex;flex-direction:column;overflow:hidden;position:relative}
+.frame{height:100%;background:var(--cream);transition:background-color 1.2s;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;position:relative}
 
 /* top bar */
 .top{display:flex;align-items:center;gap:var(--s3);padding:var(--s2) var(--s3);border-bottom:2px solid var(--ink);flex:none}
@@ -109,7 +114,7 @@ button{font:inherit;color:inherit;cursor:pointer}
 .log{display:flex;flex-direction:column;font-size:13px}
 .log .e{display:grid;grid-template-columns:48px 1fr auto;gap:var(--s2);padding:var(--s2) 0;border-bottom:1px dashed #d8c7a5;align-items:center}
 .log .t{font-family:"B612 Mono",monospace;font-size:12px;color:var(--walnut)}
-.log .w{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.log .w{min-width:0}
 .log .o{display:flex;align-items:center;gap:var(--s1);font-size:12px;color:var(--muted);justify-content:flex-end;text-align:right}
 .log .o .shape{margin-top:0}
 
@@ -191,3 +196,87 @@ input:focus,select:focus,button:focus-visible{outline:3px solid var(--mustard);o
 .gap-top{margin-top:var(--s3)}
 .hint.flex,.week .hint{display:flex;gap:var(--s2);align-items:flex-start}
 .stat .shape.warning{display:inline-block;width:12px;height:12px;margin:0 4px 0 0;vertical-align:middle}
+
+/* The light is the status: while TorBox is down the whole cabin warms. */
+html.down body{background:#7a3a26}
+html.down .frame{background:#F6E2CF}
+
+/* =====================================================================
+   The Night Light (DESIGN.md in torbox-health-router), same deck, dark only.
+   Spacing still follows the 4/8/16/24/32 rule list, where DESIGN.md says 10/18/22.
+   ===================================================================== */
+@font-face{font-family:"Outfit";src:url(fonts/outfit-latin-400-normal.woff2) format("woff2");font-weight:400;font-display:block}
+@font-face{font-family:"Outfit";src:url(fonts/outfit-latin-500-normal.woff2) format("woff2");font-weight:500;font-display:block}
+@font-face{font-family:"Outfit";src:url(fonts/outfit-latin-600-normal.woff2) format("woff2");font-weight:600 700;font-display:block}
+:root[data-theme=night]{
+  --night:#0B0820; --ember:#160A14; --moon:#F3F0FF; --moon-dim:rgba(222,216,255,.72);
+  --hair:rgba(255,255,255,.12); --hair-b:rgba(255,255,255,.28); --frost:rgba(255,255,255,.055); --well:rgba(0,0,0,.25);
+  --lav:#A78BFA; --lilac:#C4B5FD; --skyglow:#93C5FD; --ink-glow:#120A2A; --sea:#5EEAD4; --amber:#FBBF24; --coral:#FB7185;
+  --cream:transparent; --ink:var(--moon); --walnut:var(--moon-dim); --muted:var(--moon-dim); --panel:transparent; --card:var(--frost); --paper:var(--frost);
+  --teal-ink:var(--sea); --accent:var(--lav); --mustard:var(--amber); --red:var(--coral);
+  --sky:#5EEAD4; --ground:#FBBF24; --on-sky:#120A2A; --horizon:#F3F0FF; --symbol:#120A2A; --line:#F3F0FF; --grid:rgba(255,255,255,.09); --label:rgba(222,216,255,.72);
+}
+[data-theme=night] body{background:var(--night);padding:0;font-family:"Outfit",system-ui,sans-serif;font-size:15px}
+[data-theme=night] *:not(.mono){font-family:"Outfit",system-ui,sans-serif!important}
+[data-theme=night] .mono{font-family:ui-monospace,monospace!important}
+[data-theme=night] .frame{border-radius:0;background:
+  radial-gradient(600px 420px at 12% 18%,rgba(167,139,250,.22),transparent 70%),
+  radial-gradient(520px 380px at 88% 30%,rgba(147,197,253,.16),transparent 70%),
+  radial-gradient(560px 420px at 60% 100%,rgba(251,113,133,.12),transparent 70%),var(--night);color:var(--moon)}
+html.down[data-theme=night] body{background:var(--ember)}
+html.down[data-theme=night] .frame{background:
+  radial-gradient(600px 420px at 12% 18%,rgba(251,191,36,.2),transparent 70%),
+  radial-gradient(560px 420px at 70% 90%,rgba(251,113,133,.22),transparent 70%),var(--ember)}
+[data-theme=night] .top{border-bottom:1px solid var(--hair)}
+[data-theme=night] .star{fill:var(--lilac)}
+[data-theme=night] .top .logo,[data-theme=night] .drawer-head h2,[data-theme=night] .connect-card h1{font-weight:600;letter-spacing:-.02em;background:linear-gradient(100deg,#fff,var(--lilac) 55%,var(--skyglow));-webkit-background-clip:text;background-clip:text;color:transparent}
+html.down[data-theme=night] .top .logo{background-image:linear-gradient(100deg,var(--amber),var(--coral))}
+[data-theme=night] .cap{color:var(--moon-dim);font-weight:500;letter-spacing:.14em;display:flex;align-items:center;gap:var(--s2)}
+[data-theme=night] .cap::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--lav);flex:none}
+[data-theme=night] .chip{background:rgba(94,234,212,.08);color:var(--sea);border:1px solid rgba(94,234,212,.35);font-weight:600;letter-spacing:.02em}
+[data-theme=night] .chip.m{background:rgba(251,191,36,.08);color:var(--amber);border-color:rgba(251,191,36,.4)}
+[data-theme=night] .chip.m .shape.caution{border-bottom-color:var(--amber)}
+[data-theme=night] .chip.r{background:rgba(251,113,133,.1);color:var(--coral);border-color:rgba(251,113,133,.45)}
+[data-theme=night] .icon-btn{background:var(--frost);border:1px solid var(--hair);border-radius:14px}
+[data-theme=night] .icon-btn svg{stroke:var(--moon)}
+[data-theme=night] .icon-btn:hover{background:rgba(255,255,255,.09);border-color:var(--hair-b)}
+[data-theme=night] .deck{gap:var(--s3);padding:var(--s3)}
+[data-theme=night] .col{background:var(--frost);border:1px solid var(--hair)!important;border-radius:24px;backdrop-filter:blur(20px);box-shadow:inset 0 1px rgba(255,255,255,.1),0 20px 60px rgba(5,3,15,.25)}
+[data-theme=night] .inst svg.att{filter:drop-shadow(0 0 24px rgba(94,234,212,.35))}
+html.down[data-theme=night] .inst svg.att{filter:drop-shadow(0 0 24px rgba(251,191,36,.35))}
+[data-theme=night] .big,[data-theme=night] .mid-n,[data-theme=night] .hh .n span,[data-theme=night] .stat b{font-weight:600;letter-spacing:-.03em}
+[data-theme=night] .big{font-size:68px}
+[data-theme=night] .ro{border-bottom:1px solid var(--hair)}
+[data-theme=night] .alarm,[data-theme=night] .hh,[data-theme=night] .stat,[data-theme=night] .toggle{background:var(--frost);border:1px solid var(--hair);border-radius:8px}
+[data-theme=night] .hh{border-radius:8px}
+[data-theme=night] .hh:hover{background:rgba(255,255,255,.08);border-color:var(--hair-b)}
+[data-theme=night] .shape.note{background:var(--moon-dim)}
+[data-theme=night] .log .e{border-bottom:1px solid var(--hair)}
+[data-theme=night] .tape{background:var(--well);border:1px solid var(--hair);border-radius:8px;color:var(--moon)}
+[data-theme=night] .tape .cur{background:var(--moon);color:var(--ink-glow)}
+[data-theme=night] .tape .cur.bad{background:var(--coral);color:var(--ink-glow)}
+[data-theme=night] .knob i{background:var(--frost);border:1px solid var(--hair-b)}
+[data-theme=night] .knob i::after{background:var(--moon)}
+[data-theme=night] .paper{border:1px solid var(--hair);border-radius:24px;backdrop-filter:blur(20px);margin:0 var(--s3) var(--s3);box-shadow:inset 0 1px rgba(255,255,255,.1)}
+[data-theme=night] .paper text{fill:var(--moon-dim)}
+[data-theme=night] .connect-card{background:var(--frost);border:1px solid var(--hair);border-radius:24px;backdrop-filter:blur(20px)}
+[data-theme=night] input,[data-theme=night] select{background:var(--well);border:1px solid var(--hair);border-radius:14px;color:var(--moon)}
+[data-theme=night] select option{background:#1a1238;color:var(--moon)}
+[data-theme=night] input:focus,[data-theme=night] select:focus{outline:none;border-color:var(--lav);box-shadow:0 0 0 4px rgba(167,139,250,.2)}
+[data-theme=night] .primary{background:linear-gradient(135deg,var(--lilac),var(--lav) 50%,var(--skyglow));color:var(--ink-glow);border:0;border-radius:14px;font-weight:600;box-shadow:0 8px 26px rgba(167,139,250,.32)}
+[data-theme=night] .primary:hover{box-shadow:0 8px 26px rgba(167,139,250,.55)}
+[data-theme=night] .ghost{background:var(--frost);border:1px solid var(--hair);border-radius:14px;font-weight:500}
+[data-theme=night] .ghost:hover{border-color:var(--hair-b)}
+[data-theme=night] .scrim{background:rgba(5,3,15,.55);backdrop-filter:blur(6px)}
+[data-theme=night] .drawer{background:rgba(26,18,56,.86);backdrop-filter:blur(24px);border:1px solid var(--hair);border-radius:24px;box-shadow:0 -20px 80px rgba(5,3,15,.5)}
+[data-theme=night] .drawer-head,[data-theme=night] .drawer-foot{border-color:var(--hair);background:transparent}
+[data-theme=night] .checkt td{border-top:1px solid var(--hair)}
+[data-theme=night] .yes{color:var(--sea)}
+[data-theme=night] .toast{background:#1a1238;border:1px solid var(--hair);color:var(--moon)}
+[data-theme=night] .toast.bad{background:var(--coral);color:var(--ink-glow)}
+[data-theme=night] .offline{background:rgba(251,191,36,.12);color:var(--amber);border-bottom:1px solid rgba(251,191,36,.4)}
+[data-theme=night] .offline .shape.caution{border-bottom-color:var(--amber)}
+.theme-pick{display:flex;gap:var(--s2)}
+.theme-pick button[aria-pressed=true]{outline:3px solid var(--mustard);outline-offset:1px}
+[data-theme=night] .paper .cap::before{display:none}
+[data-theme=night] .big{font-size:64px}

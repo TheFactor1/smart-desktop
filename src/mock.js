@@ -35,6 +35,7 @@
     inbox: [{ at: ago(70), text: 'TorBox back up after 38 min on Usenet.', buttons: [] }],
     notifications: { deviceCount: 3, telegramMuted: false },
   };
+  if (/[?&]down=1/.test(location.search)) { summary.routing = { status: 'down', pinned: false, downSince: ago(38) }; summary.lastCheck.livePing = 'down'; summary.checks.slice(0, 6).forEach((c) => { c.up = false; c.pingMs = null; }); }
   const setups = {
     'Household A': { setup: { catalog: { brand: 'LG', series: 'C3', year: 2023 }, box: 'shield-pro', sound: 'atmos' }, check: { tv: { brand: 'LG', series: 'C3' }, box: { name: 'Shield TV Pro' }, sound: 'atmos', rows: [], notes: [] }, auto: true, using: { name: 'Auto', auto: true, summary: '4K, Dolby Vision, Atmos' } },
     'Household B': { setup: { catalog: { brand: 'Samsung', series: 'Q60', year: 2022 } }, check: { tv: { brand: 'Samsung', series: 'Q60' }, box: null, sound: null, rows: [], notes: [] }, auto: true, using: { name: 'Auto', auto: true, summary: '4K, HDR10+' } },

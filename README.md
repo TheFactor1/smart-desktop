@@ -1,6 +1,6 @@
 # Smart desktop
 
-A desktop dashboard for a [Smart](https://github.com/TheFactor1/torbox-health-router) stream router, styled as a 1950s flight deck.
+A desktop dashboard for a [Smart](https://github.com/TheFactor1/torbox-health-router) stream router, in Smart's Night Light design: a calm violet room after dark that turns to ember when TorBox is down.
 
 - **Route attitude**: teal sky is today's share of searches that went through TorBox, orange ground is the share that fell to Usenet.
 - **Ping tape** with the last 48 TorBox checks, **knobs** for routing, the search cache and Telegram alerts.
@@ -37,6 +37,6 @@ To preview the screen in a browser with example data: `python3 -m http.server -d
 
 ## Credits
 
-Fonts (SIL Open Font License): Jost by Owen Earl (indestructible type*), Righteous by Astigmatic, B612 and B612 Mono by Intactile Design for Airbus, Courier Prime by Alan Dague-Greene for Quote-Unquote Apps. Packaged via Fontsource.
+Fonts (SIL Open Font License): Outfit by Rodrigo Fuenzalida (the app's typeface), and for the older Atomic look kept for preview (`?theme=atomic`): Jost by Owen Earl (indestructible type*), Righteous by Astigmatic, B612 and B612 Mono by Intactile Design for Airbus, Courier Prime by Alan Dague-Greene for Quote-Unquote Apps. Packaged via Fontsource.
 
 Built with [Tauri](https://tauri.app).

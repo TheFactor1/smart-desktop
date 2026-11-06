@@ -1,13 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
-  <rect x="32" y="32" width="960" height="960" rx="220" fill="#6B4A2F"/>
-  <rect x="80" y="80" width="864" height="864" rx="180" fill="#F4ECD8"/>
-  <clipPath id="c"><circle cx="512" cy="540" r="300"/></clipPath>
+  <defs>
+    <radialGradient id="g1" cx="25%" cy="20%" r="70%"><stop offset="0" stop-color="#A78BFA" stop-opacity=".55"/><stop offset="1" stop-color="#A78BFA" stop-opacity="0"/></radialGradient>
+    <radialGradient id="g2" cx="85%" cy="95%" r="60%"><stop offset="0" stop-color="#FB7185" stop-opacity=".35"/><stop offset="1" stop-color="#FB7185" stop-opacity="0"/></radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%"><stop offset=".6" stop-color="#5EEAD4" stop-opacity=".45"/><stop offset="1" stop-color="#5EEAD4" stop-opacity="0"/></radialGradient>
+    <linearGradient id="star" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#fff"/><stop offset=".55" stop-color="#C4B5FD"/><stop offset="1" stop-color="#93C5FD"/></linearGradient>
+    <clipPath id="c"><circle cx="512" cy="560" r="280"/></clipPath>
+  </defs>
+  <rect x="32" y="32" width="960" height="960" rx="220" fill="#0B0820"/>
+  <rect x="32" y="32" width="960" height="960" rx="220" fill="url(#g1)"/>
+  <rect x="32" y="32" width="960" height="960" rx="220" fill="url(#g2)"/>
+  <circle cx="512" cy="560" r="380" fill="url(#glow)"/>
   <g clip-path="url(#c)">
-    <rect x="0" y="0" width="1024" height="660" fill="#2A9D8F"/>
-    <rect x="0" y="660" width="1024" height="400" fill="#D1593A"/>
-    <rect x="0" y="650" width="1024" height="20" fill="#fff"/>
+    <rect x="0" y="0" width="1024" height="700" fill="#5EEAD4"/>
+    <rect x="0" y="700" width="1024" height="400" fill="#FBBF24"/>
+    <rect x="0" y="690" width="1024" height="20" fill="#F3F0FF"/>
   </g>
-  <circle cx="512" cy="540" r="300" fill="none" stroke="#2B2118" stroke-width="40"/>
-  <path d="M362 560 H462 L512 610 L562 560 H662" fill="none" stroke="#F4ECD8" stroke-width="34" stroke-linejoin="round" stroke-linecap="round"/>
-  <path d="M760 130 L785 245 L900 270 L785 295 L760 410 L735 295 L620 270 L735 245Z" fill="#E9A23B" stroke="#2B2118" stroke-width="14" stroke-linejoin="round"/>
+  <circle cx="512" cy="560" r="280" fill="none" stroke="#F3F0FF" stroke-width="34"/>
+  <path d="M372 580 H466 L512 626 L558 580 H652" fill="none" stroke="#120A2A" stroke-width="34" stroke-linejoin="round" stroke-linecap="round"/>
+  <path d="M770 110 L795 235 L920 260 L795 285 L770 410 L745 285 L620 260 L745 235Z" fill="url(#star)"/>
 </svg>

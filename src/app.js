@@ -7,6 +7,17 @@ const POLL_MS = 60000;
 const OPTS_MS = 5 * 60000;
 
 const $ = (id) => document.getElementById(id);
+
+// Look: "atomic" (cream cockpit, the picked design) or "night" (DESIGN.md's Night Light).
+function getTheme() {
+  const q = new URLSearchParams(location.search).get('theme');
+  return q === 'atomic' ? 'atomic' : 'night';  // Matt picked Night Light; ?theme=atomic keeps the old look for preview
+}
+function setTheme(t) {
+  if (t === 'night') document.documentElement.dataset.theme = 'night';
+  else delete document.documentElement.dataset.theme;
+}
+setTheme(getTheme());
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const stripEmoji = (s) => String(s || '').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu, '').replace(/^[ \t]+/gm, '');
 const clock = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }); };
@@ -266,6 +277,7 @@ function render() {
 
 function renderState() {
   const r = data.routing || {};
+  document.documentElement.classList.toggle('down', r.status === 'down');
   const chip = $('stateChip');
   chip.hidden = false;
   let line, label, cls;
@@ -289,13 +301,13 @@ function renderAttitude() {
   $('attitude').innerHTML =
     '<svg class="att" viewBox="0 0 180 180" width="192" role="img" aria-label="' + (t.total ? torPct + ' percent of today\'s searches on TorBox, ' + (100 - torPct) + ' percent on Usenet' : 'No searches yet today') + '">' +
     '<defs><clipPath id="atc"><circle cx="90" cy="90" r="70"/></clipPath></defs>' +
-    '<g clip-path="url(#atc)"><rect x="0" y="0" width="180" height="' + hy + '" fill="#2A9D8F"/><rect x="0" y="' + hy + '" width="180" height="' + (180 - hy) + '" fill="#D1593A"/>' +
-    '<line x1="0" y1="' + hy + '" x2="180" y2="' + hy + '" stroke="#fff" stroke-width="2"/>' +
-    '<g stroke="#ffffff" stroke-opacity=".5" stroke-width="1.4"><line x1="70" y1="' + (hy - 18) + '" x2="110" y2="' + (hy - 18) + '"/><line x1="78" y1="' + (hy - 36) + '" x2="102" y2="' + (hy - 36) + '"/></g></g>' +
-    '<circle cx="90" cy="90" r="70" fill="none" stroke="#2B2118" stroke-width="6"/>' +
-    '<g stroke="#2B2118" stroke-width="2"><line x1="90" y1="8" x2="90" y2="16"/><line x1="49" y1="19" x2="53" y2="26"/><line x1="131" y1="19" x2="127" y2="26"/><line x1="19" y1="49" x2="26" y2="53"/><line x1="161" y1="49" x2="154" y2="53"/></g>' +
-    '<path d="M60 92 H82 L90 100 L98 92 H120" fill="none" stroke="#F4ECD8" stroke-width="4" stroke-linejoin="round"/>' +
-    '<text x="90" y="62" text-anchor="middle" fill="#fff" font-family="B612" font-weight="700" font-size="24">' + label + '</text>' +
+    '<g clip-path="url(#atc)"><rect x="0" y="0" width="180" height="' + hy + '" style="fill:var(--sky)"/><rect x="0" y="' + hy + '" width="180" height="' + (180 - hy) + '" style="fill:var(--ground)"/>' +
+    '<line x1="0" y1="' + hy + '" x2="180" y2="' + hy + '" style="stroke:var(--horizon)" stroke-width="2"/>' +
+    '<g style="stroke:var(--horizon)" stroke-opacity=".5" stroke-width="1.4"><line x1="70" y1="' + (hy - 18) + '" x2="110" y2="' + (hy - 18) + '"/><line x1="78" y1="' + (hy - 36) + '" x2="102" y2="' + (hy - 36) + '"/></g></g>' +
+    '<circle cx="90" cy="90" r="70" fill="none" style="stroke:var(--line)" stroke-width="6"/>' +
+    '<g style="stroke:var(--line)" stroke-width="2"><line x1="90" y1="8" x2="90" y2="16"/><line x1="49" y1="19" x2="53" y2="26"/><line x1="131" y1="19" x2="127" y2="26"/><line x1="19" y1="49" x2="26" y2="53"/><line x1="161" y1="49" x2="154" y2="53"/></g>' +
+    '<path d="M60 92 H82 L90 100 L98 92 H120" fill="none" style="stroke:var(--symbol)" stroke-width="4" stroke-linejoin="round"/>' +
+    '<text x="90" y="62" text-anchor="middle" style="fill:var(--on-sky)" font-family="B612" font-weight="700" font-size="24">' + label + '</text>' +
     '</svg>' +
     '<div class="readouts">' + ro('Today on TorBox', t.total ? torPct + '%' : 'no searches') + ro('Today on Usenet', t.total ? (100 - torPct) + '%' : '—') +
     (weekShare() != null ? ro('7-day TorBox share', weekShare() + '%') + '<div class="delta">Today is <b>' + (t.total ? signed(torPct - weekShare()) + ' points' : 'not counted yet') + '</b> against the 7-day share.</div>' : '') + '</div>';
@@ -369,7 +381,7 @@ function weekShare() {
 }
 function vsLine(cmp, avg) {
   if (cmp) return '<b>' + signed(cmp.today - cmp.yesterday) + '</b> vs yesterday by now';
-  if (avg != null) return 'Today · 7-day avg <b>' + avg + '</b> a day';
+  if (avg != null) return 'Today · 7-day avg <b>' + avg + '</b>/day';
   return 'Today';
 }
 
@@ -505,11 +517,11 @@ function renderTape() {
     let d = '', down = '';
     vals.forEach((v, i) => {
       const x = (i / (vals.length - 1)) * W;
-      if (v == null) { down += '<rect x="' + (x - 2) + '" y="0" width="4" height="' + H + '" fill="#D1593A"/>'; return; }
+      if (v == null) { down += '<rect x="' + (x - 2) + '" y="0" width="4" height="' + H + '" style="fill:var(--ground)"/>'; return; }
       const y = H - 3 - ((v - min) / Math.max(1, max - min)) * (H - 6);
       d += (d ? ' L' : 'M') + x.toFixed(1) + ' ' + y.toFixed(1);
     });
-    h += '<svg viewBox="0 0 ' + W + ' ' + H + '" width="88%" height="' + H + '" aria-label="Ping over the last ' + vals.length + ' checks">' + down + '<path d="' + d + '" fill="none" stroke="#F4ECD8" stroke-width="1.5"/></svg>';
+    h += '<svg viewBox="0 0 ' + W + ' ' + H + '" width="88%" height="' + H + '" aria-label="Ping over the last ' + vals.length + ' checks">' + down + '<path d="' + d + '" fill="none" style="stroke:var(--symbol)" stroke-width="1.5"/></svg>';
   }
   $('tape').innerHTML = h;
 }
@@ -553,11 +565,11 @@ function renderPaper() {
   const x = (ms) => ((ms - dayStart) / 86400000) * W;
   const total = Math.max(10, Math.ceil(today.length * 1.25));
   const y = (n) => bottom - (n / total) * (bottom - top);
-  let g = '<g stroke="#ead9b8">';
+  let g = '<g style="stroke:var(--grid)">';
   for (let i = 1; i < 24; i++) g += '<line x1="' + x(dayStart + i * 3600000) + '" y1="' + top + '" x2="' + x(dayStart + i * 3600000) + '" y2="' + bottom + '"/>';
   for (let i = 0; i <= 3; i++) g += '<line x1="0" y1="' + (top + i * (bottom - top) / 3) + '" x2="' + W + '" y2="' + (top + i * (bottom - top) / 3) + '"/>';
   g += '</g>';
-  let labels = '<g fill="#6B4A2F" font-family="Courier Prime" font-size="10">';
+  let labels = '<g style="fill:var(--label)" font-family="Courier Prime" font-size="10">';
   for (const hr of [0, 3, 6, 9, 12, 15, 18, 21]) labels += '<text x="' + (x(dayStart + hr * 3600000) + 2) + '" y="' + (H - 4) + '">' + String(hr).padStart(2, '0') + ':00</text>';
   labels += '</g>';
   // Cumulative searches through the day, like a pen on a drum.
@@ -567,7 +579,7 @@ function renderPaper() {
     d += ' L' + xs.toFixed(1) + ' ' + y(n).toFixed(1);
     n++;
     d += ' L' + xs.toFixed(1) + ' ' + y(n).toFixed(1);
-    if (s.outcome === 'failed') marks += '<rect x="' + (xs - 4) + '" y="' + (y(n) - 4) + '" width="8" height="8" fill="#B3261E" transform="rotate(45 ' + xs + ' ' + y(n) + ')"/>';
+    if (s.outcome === 'failed') marks += '<rect x="' + (xs - 4) + '" y="' + (y(n) - 4) + '" width="8" height="8" style="fill:var(--red)" transform="rotate(45 ' + xs + ' ' + y(n) + ')"/>';
   }
   const xn = x(now.getTime());
   d += ' L' + xn.toFixed(1) + ' ' + y(n).toFixed(1);
@@ -577,16 +589,16 @@ function renderPaper() {
   if (fails.length) {
     const f = fails[fails.length - 1];
     const fx = Math.max(4, Math.min(W - 300, x(Date.parse(f.at)) - 150));
-    notes += '<text x="' + fx + '" y="' + (top - 2) + '" fill="#B3261E" font-family="Courier Prime" font-size="11">' + esc(clock(f.at) + ' ' + f.profile + ': ' + (f.title || f.what || 'search') + ' found nothing') + '</text>';
+    notes += '<text x="' + fx + '" y="' + (top - 2) + '" style="fill:var(--red)" font-family="Courier Prime" font-size="11">' + esc(clock(f.at) + ' ' + f.profile + ': ' + (f.title || f.what || 'search') + ' found nothing') + '</text>';
   } else if (data.routing && data.routing.status === 'down' && data.routing.downSince) {
     const dx = Math.max(0, x(Date.parse(data.routing.downSince)));
-    notes += '<rect x="' + dx + '" y="' + top + '" width="' + Math.max(2, xn - dx) + '" height="' + (bottom - top) + '" fill="#D1593A" opacity=".12"/>';
-    notes += '<text x="' + Math.min(W - 200, dx + 4) + '" y="' + (top - 2) + '" fill="#6B4A2F" font-family="Courier Prime" font-size="11">' + esc(clock(data.routing.downSince)) + ' detour to Usenet</text>';
+    notes += '<rect x="' + dx + '" y="' + top + '" width="' + Math.max(2, xn - dx) + '" height="' + (bottom - top) + '" style="fill:var(--ground)" opacity=".12"/>';
+    notes += '<text x="' + Math.min(W - 200, dx + 4) + '" y="' + (top - 2) + '" style="fill:var(--label)" font-family="Courier Prime" font-size="11">' + esc(clock(data.routing.downSince)) + ' detour to Usenet</text>';
   }
   $('paper').innerHTML = '<div class="cap" style="display:flex;justify-content:space-between"><span>CHART PAPER · SEARCHES TODAY</span><span>' + today.length + ' so far</span></div>' +
     '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Searches through the day: ' + today.length + ' so far, ' + fails.length + ' found nothing">' +
-    g + notes + '<path d="' + d + '" fill="none" stroke="#2B2118" stroke-width="2"/>' + marks +
-    '<circle cx="' + xn + '" cy="' + y(n) + '" r="4" fill="#2B2118"/>' + labels + '</svg>';
+    g + notes + '<path d="' + d + '" fill="none" style="stroke:var(--line)" stroke-width="2"/>' + marks +
+    '<circle cx="' + xn + '" cy="' + y(n) + '" r="4" style="fill:var(--line)"/>' + labels + '</svg>';
 }
 
 // ---------- household drawer ----------
@@ -630,7 +642,7 @@ function renderDrawer() {
       '<div class="stat"><b>' + (t.total || 0) + '</b><span>searches</span></div>' +
       '<div class="stat"><b>' + ((t.fallback || 0) + (t.forced || 0)) + '</b><span>on Usenet</span></div>' +
       '<div class="stat"><b>' + ((t.rescued || 0) + (t.toppedUp || 0)) + '</b><span>rescued</span></div>' +
-      '<div class="stat"><b style="color:' + (t.failed ? '#B3261E' : 'inherit') + '">' + (t.failed ? shape('warning') + ' ' : '') + (t.failed || 0) + '</b><span>failed</span></div>' +
+      '<div class="stat"><b style="color:' + (t.failed ? 'var(--red)' : 'inherit') + '">' + (t.failed ? shape('warning') + ' ' : '') + (t.failed || 0) + '</b><span>failed</span></div>' +
     '</div>' +
     '<p class="hint">Last active ' + esc(ago(h.lastActive)) + (h.jellyfin ? ' · Jellyfin login on' : '') + '</p>' +
     '<div class="toggle gap-top"><span><b>Next search on Usenet</b><small>' + (h.forcedNext ? 'On: their next search skips TorBox.' : 'Off: searches go the normal way.') + '</small></span>' +
