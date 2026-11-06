@@ -311,3 +311,49 @@ html.down[data-theme=night] .inst svg.att{filter:drop-shadow(0 0 24px rgba(251,1
 .deck.stale .counts,.deck.stale .orb{opacity:.75;transition:opacity .3s}
 .deck .counts,.deck .orb{transition:opacity .3s}
 @media (prefers-reduced-motion:reduce){.drawer,.drawer.open,.drawer.dialog,.drawer.dialog.open{transition:none}.deck.rise .col > *,.deck.rise .paper{animation:none}}
+
+/* editing: household tabs, rows, quality profiles, reports */
+.tabs{display:flex;gap:var(--s1);padding:var(--s1);border-radius:16px;background:var(--well,var(--card));border:1px solid var(--hair,var(--ink))}
+.tab{flex:1;min-height:44px;border:0;border-radius:12px;background:transparent;font-weight:500;color:var(--moon-dim,var(--walnut))}
+.tab.on{background:var(--frost,#fff);color:var(--moon,var(--ink));font-weight:600;box-shadow:inset 0 0 0 1px var(--hair-b,var(--ink))}
+.tab:hover:not(.on){color:var(--moon,var(--ink))}
+.inline{display:flex;gap:var(--s2);align-items:center}
+.inline > input,.inline > select{flex:1;min-width:0}
+.btnrow{display:flex;flex-wrap:wrap;gap:var(--s2)}
+.ghost.sm{padding:var(--s1) var(--s3);font-size:14px}
+.icon-btn.sm{width:44px;height:44px;font-size:16px}
+.icon-btn:disabled{opacity:.35;cursor:default}
+.inside{width:100%;border-collapse:collapse;font-size:14px}
+.inside th{text-align:left;font-weight:500;color:var(--moon-dim,var(--walnut));padding:var(--s1) var(--s2) var(--s1) 0;vertical-align:top;white-space:nowrap;width:1%}
+.inside td{padding:var(--s1) 0;vertical-align:top}
+.inside td .ghost{margin-left:var(--s2)}
+.check{flex-direction:row;align-items:center;gap:var(--s2);font-size:14px;font-weight:500;letter-spacing:0;min-height:44px;cursor:pointer}
+.check input{width:20px;height:20px;min-height:0;accent-color:var(--lav,var(--accent))}
+.rowlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s2)}
+.rowlist li{display:flex;align-items:center;gap:var(--s2);padding:var(--s1) var(--s2);border-radius:14px;background:var(--frost,var(--card));border:1px solid var(--hair,var(--ink))}
+.rowlist li.off .nm input{color:var(--moon-dim,var(--muted));text-decoration:line-through}
+.rowlist .mv{display:flex;gap:0}
+.rowlist .nm{flex:1;min-width:0;display:flex;flex-direction:column;gap:var(--s1)}
+.rowlist .nm input{background:transparent;border-color:transparent;padding:var(--s1) var(--s2);min-height:36px}
+.rowlist .nm input:hover{border-color:var(--hair,var(--ink))}
+.rowlist .nm small,.found small,.tagrow small{font-size:12px;color:var(--moon-dim,var(--walnut));padding-left:var(--s2)}
+.sm-gap{width:0}
+.found{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--s2)}
+.found li{display:flex;align-items:center;gap:var(--s2);justify-content:space-between}
+.found li > span{display:flex;flex-direction:column;min-width:0}
+.found small{padding-left:0}
+.qcard,.report{display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3);border-radius:16px;background:var(--frost,var(--card));border:1px solid var(--hair,var(--ink))}
+.qhead{display:flex;align-items:center;gap:var(--s2)}
+.qhead b{font-size:18px}
+.tagrow{display:flex;flex-direction:column;gap:var(--s1)}
+.tagrow small{padding-left:0}
+.tags{display:flex;flex-wrap:wrap;gap:var(--s1)}
+.tag{min-height:44px;padding:var(--s1) var(--s3);border-radius:999px;border:1px solid var(--hair,var(--ink));background:transparent;font-size:14px}
+.tag.prefer{background:rgba(94,234,212,.16);border-color:var(--sea,var(--teal-ink));color:var(--sea,var(--teal-ink));font-weight:600}
+.tag.avoid{background:rgba(251,113,133,.14);border-color:var(--coral,var(--red));color:var(--coral,var(--red));font-weight:600}
+.loglines{margin:0;padding-left:var(--s3);display:flex;flex-direction:column;gap:var(--s1);font-size:14px;color:var(--moon-dim,var(--walnut))}
+.log .why{display:block;font-size:12px;color:var(--moon-dim,var(--walnut))}
+.tools{display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s2)}
+.tool{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s1);text-align:left;min-height:44px;padding:var(--s2) var(--s3);border-radius:14px;background:var(--frost,var(--card));border:1px solid var(--hair,var(--ink))}
+.tool:hover{border-color:var(--hair-b,var(--ink))}
+.tool small{font-size:12px;color:var(--moon-dim,var(--walnut))}

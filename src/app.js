@@ -307,6 +307,8 @@ function closeDrawers() {
   closePanel($('drawer'));
   closePanel($('settings'));
   openHousehold = null;
+  panelMode = null;
+  qEdit = null;
 }
 
 // ---------- data ----------
@@ -387,6 +389,7 @@ function render() {
   renderLog();
   renderTape();
   renderKnobs();
+  renderTools();
   renderWeek();
   renderPaper();
 }
@@ -565,7 +568,7 @@ function qualityChip(h) {
 
 function hhDelta(name) {
   const c = byNow((s) => s.profile === name);
-  return c ? 'today, ' + signed(c.today - c.yesterday) + ' vs yest.' : 'today';
+  return c ? 'today, ' + signed(c.today - c.yesterday) + ' vs yesterday' : 'today';
 }
 
 function renderHouseholds() {
@@ -723,6 +726,9 @@ let draft = null;
 
 async function openHouseholdDrawer(name) {
   openHousehold = name;
+  panelMode = null;
+  hhTab = 'overview';
+  rows = null;
   $('drawerTitle').textContent = name;
   $('drawerBody').scrollTop = 0;
   const ready = tvOptions && opts;
@@ -761,7 +767,7 @@ function renderDrawer() {
   const brands = [...new Set(tvo.catalog.map((c) => c.brand))];
   const groups = [...new Set(tvo.boxes.map((b) => b.group))];
 
-  $('drawerBody').innerHTML =
+  const overview =
     '<div class="cap">TODAY · ' + esc(hhDelta(name).replace(/^today,? ?/, '') || 'so far') + '</div>' +
     '<div class="stats">' +
       '<div class="stat"><b>' + (t.total || 0) + '</b><span>searches</span></div>' +
@@ -776,6 +782,9 @@ function renderDrawer() {
       '<option value="auto"' + (choice === 'auto' ? ' selected' : '') + '>Auto, from their TV' + (tvInfo.using && tvInfo.using.auto ? ' (' + esc(tvInfo.using.summary) + ')' : '') + '</option>' +
       profiles.map((p) => '<option value="' + esc(p.id) + '"' + (choice === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('') +
     '</select></label>' +
+    '<div id="inside">' + insideHtml(name, choice) + '</div>' +
+    renameHtml(name);
+  const tvForm =
     '<div class="cap">TV SETUP</div>' +
     '<label>TV MODEL NUMBER<input id="modelIn" spellcheck="false" placeholder="e.g. OLED65C3PUA" value="' + esc(draft.model || '') + '"></label>' +
     '<div class="or">or</div>' +
@@ -791,15 +800,25 @@ function renderDrawer() {
       '</select></label>' +
     '</div>' +
     '<div id="checkOut"></div>';
+  $('drawerBody').innerHTML = tabsHtml() + (hhTab === 'overview' ? overview : hhTab === 'tv' ? tvForm : '<div id="tabBody"></div>');
+  bindTabs();
+  if (hhTab !== 'tv') $('drawerFoot').hidden = true;
+  if (hhTab === 'jellyfin') return renderJellyfinTab(name, h);
+  if (hhTab === 'rows') return renderRowsTab(name, h);
+  if (hhTab === 'overview') {
+    $('forceBtn').onclick = (e) => runAction({ action: h.forcedNext ? 'unforce' : 'force', household: name }, { button: e.target }).then(() => refreshDrawerSoon());
+    $('qualitySel').onchange = async (e) => {
+      $('inside').innerHTML = insideHtml(name, e.target.value);
+      await runAction({ action: 'household_profile_set', household: name, profile: e.target.value }, { refresh: false });
+      await loadOpts(); refresh();
+    };
+    bindRename(name);
+    return;
+  }
   $('drawerFoot').hidden = false;
   $('drawerFoot').innerHTML = (tvInfo.setup ? '<button class="ghost danger" id="tvClear">Remove TV</button>' : '<span></span>') +
       '<button class="primary" id="tvSave">Save TV setup</button>';
 
-  $('forceBtn').onclick = (e) => runAction({ action: h.forcedNext ? 'unforce' : 'force', household: name }, { button: e.target }).then(() => refreshDrawerSoon());
-  $('qualitySel').onchange = async (e) => {
-    await runAction({ action: 'household_profile_set', household: name, profile: e.target.value }, { refresh: false });
-    await loadOpts(); refresh();
-  };
   const changed = () => {
     const m = $('modelIn').value.trim();
     const ci = +$('catSel').value;
