@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Smart</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="frame">
+  <header class="top">
+    <svg class="star" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 0 L23 16 L40 20 L23 24 L20 40 L17 24 L0 20 L17 16Z"/></svg>
+    <span class="logo">Smart</span>
+    <span class="cap" id="dateCap">FLIGHT DECK</span>
+    <span class="sp"></span>
+    <span class="state" id="stateLine"></span>
+    <span class="chip" id="stateChip" hidden></span>
+    <button class="icon-btn" id="refreshBtn" title="Refresh now" aria-label="Refresh now">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 4v7h-7"/></svg>
+    </button>
+    <button class="icon-btn" id="settingsBtn" title="Connection" aria-label="Connection settings">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>
+    </button>
+  </header>
+
+  <!-- First run: connect to an existing Smart -->
+  <main class="connect" id="connect" hidden>
+    <div class="connect-card">
+      <svg class="star big" viewBox="0 0 40 40" aria-hidden="true"><path d="M20 0 L23 16 L40 20 L23 24 L20 40 L17 24 L0 20 L17 16Z"/></svg>
+      <h1>Connect to your Smart</h1>
+      <p>Smart runs on the web. This app reads it with your admin token, which is kept in this computer's keychain and never shown again.</p>
+      <form id="connectForm" autocomplete="off">
+        <label>Web address<input id="baseInput" spellcheck="false" placeholder="https://smart.example.com"></label>
+        <label>Admin token<input id="tokenInput" type="password" spellcheck="false" placeholder="Paste the admin token"></label>
+        <div class="err" id="connectErr" role="alert"></div>
+        <button class="primary" id="connectBtn" type="submit">Connect</button>
+      </form>
+      <p class="fine">Setting up a new Smart server from here is coming later.</p>
+    </div>
+  </main>
+
+  <!-- The deck -->
+  <main class="deck" id="deck" hidden>
+    <section class="col inst">
+      <div class="cap">ROUTE ATTITUDE</div>
+      <div id="attitude"></div>
+      <div class="hint center">Sky is TorBox, ground is Usenet. The more ground, the worse the day.</div>
+      <div class="readouts" id="readouts"></div>
+    </section>
+
+    <section class="col mid">
+      <div class="counts" id="counts"></div>
+      <div class="alarms" id="alarms"></div>
+      <div class="cap">HOUSEHOLDS</div>
+      <div class="orb" id="households"></div>
+      <div class="cap">FLIGHT LOG</div>
+      <div class="log" id="log"></div>
+    </section>
+
+    <section class="col side">
+      <div class="cap">PING TAPE</div>
+      <div class="tape" id="tape"></div>
+      <div class="cap">CONTROLS</div>
+      <div class="knobs" id="knobs"></div>
+      <div class="cap">THIS WEEK</div>
+      <div class="week" id="week"></div>
+    </section>
+
+    <section class="paper" id="paper"></section>
+  </main>
+
+  <div class="toast" id="toast" role="status" hidden></div>
+</div>
+
+<!-- Household drawer -->
+<div class="scrim" id="scrim" hidden></div>
+<aside class="drawer" id="drawer" hidden aria-labelledby="drawerTitle">
+  <div class="drawer-head"><h2 id="drawerTitle"></h2><button class="icon-btn" id="drawerClose" aria-label="Close">×</button></div>
+  <div class="drawer-body" id="drawerBody"></div>
+</aside>
+
+<!-- Connection dialog -->
+<aside class="drawer narrow" id="settings" hidden aria-labelledby="settingsTitle">
+  <div class="drawer-head"><h2 id="settingsTitle">Connection</h2><button class="icon-btn" id="settingsClose" aria-label="Close">×</button></div>
+  <div class="drawer-body">
+    <p class="hint">Connected to</p>
+    <p class="mono" id="settingsBase"></p>
+    <p class="hint">The token is stored in this computer's keychain.</p>
+    <button class="ghost danger" id="signOutBtn">Sign out and forget the token</button>
+    <p class="fine" id="versionLine"></p>
+  </div>
+</aside>
+
+<script src="mock.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

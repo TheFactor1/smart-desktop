@@ -1,0 +1,46 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "Smart",
+  "version": "0.1.0",
+  "identifier": "com.thefactor1.smartdesktop",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      {
+        "label": "main",
+        "title": "Smart",
+        "width": 1180,
+        "height": 800,
+        "minWidth": 860,
+        "minHeight": 600,
+        "backgroundColor": "#6B4A2F"
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; script-src 'self'"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["deb", "appimage", "nsis", "msi"],
+    "category": "Utility",
+    "shortDescription": "Smart flight deck",
+    "longDescription": "A desktop dashboard for a Smart stream router: home server and stream health, households, today's counts, alerts and controls.",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "linux": {
+      "deb": { "depends": ["libsecret-1-0"] }
+    },
+    "windows": {
+      "nsis": { "installMode": "currentUser" }
+    }
+  }
+}

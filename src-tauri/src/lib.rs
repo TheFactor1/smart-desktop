@@ -1,0 +1,190 @@
+// Smart desktop: every call to the Worker goes through here.
+//
+// The Worker refuses POSTs that carry a different Origin header, and a webview always
+// sends one, so the page never talks to the Worker itself. That also keeps the admin
+// token out of the page: it lives in the OS keychain and only this file reads it.
+
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::path::PathBuf;
+use std::time::Duration;
+use tauri::{AppHandle, Manager, State};
+
+const KEYRING_SERVICE: &str = "Smart desktop";
+const KEYRING_USER: &str = "admin-token";
+pub const DEFAULT_BASE: &str = "https://smart.mattshosted.com";
+
+struct Http(reqwest::Client);
+
+#[derive(Serialize, Deserialize, Default, Clone)]
+struct StoredConfig {
+    base_url: Option<String>,
+}
+
+#[derive(Serialize)]
+struct ConfigView {
+    base_url: String,
+    connected: bool,
+    default_base: &'static str,
+}
+
+fn config_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let dir = app
+        .path()
+        .app_config_dir()
+        .map_err(|e| format!("No config folder: {e}"))?;
+    std::fs::create_dir_all(&dir).map_err(|e| format!("Could not make the config folder: {e}"))?;
+    Ok(dir.join("config.json"))
+}
+
+fn load_config(app: &AppHandle) -> StoredConfig {
+    config_path(app)
+        .ok()
+        .and_then(|p| std::fs::read_to_string(p).ok())
+        .and_then(|s| serde_json::from_str(&s).ok())
+        .unwrap_or_default()
+}
+
+fn save_config(app: &AppHandle, cfg: &StoredConfig) -> Result<(), String> {
+    let text = serde_json::to_string_pretty(cfg).map_err(|e| e.to_string())?;
+    std::fs::write(config_path(app)?, text).map_err(|e| format!("Could not save settings: {e}"))
+}
+
+fn entry() -> Result<keyring::Entry, String> {
+    keyring::Entry::new(KEYRING_SERVICE, KEYRING_USER).map_err(|e| format!("Keychain unavailable: {e}"))
+}
+
+fn read_token() -> Option<String> {
+    entry().ok()?.get_password().ok().filter(|t| !t.is_empty())
+}
+
+/// "smart.example.com/" or "https://smart.example.com/app" -> "https://smart.example.com"
+fn clean_base(raw: &str) -> Result<String, String> {
+    let mut s = raw.trim().trim_end_matches('/').to_string();
+    if s.is_empty() {
+        s = DEFAULT_BASE.to_string();
+    }
+    if !s.starts_with("http://") && !s.starts_with("https://") {
+        s = format!("https://{s}");
+    }
+    let url = reqwest::Url::parse(&s).map_err(|_| "That web address doesn't look right.".to_string())?;
+    let host = url.host_str().ok_or("That web address has no host.")?;
+    let port = url.port().map(|p| format!(":{p}")).unwrap_or_default();
+    Ok(format!("{}://{}{}", url.scheme(), host, port))
+}
+
+fn current(app: &AppHandle) -> Result<(String, String), String> {
+    let base = load_config(app).base_url.unwrap_or_else(|| DEFAULT_BASE.to_string());
+    let token = read_token().ok_or("NOT_CONNECTED")?;
+    Ok((base, token))
+}
+
+async fn read_json(resp: reqwest::Response) -> Result<Value, String> {
+    let status = resp.status();
+    let body: Value = resp.json().await.unwrap_or(Value::Null);
+    if status.as_u16() == 403 || status.as_u16() == 401 {
+        return Err("BAD_TOKEN".into());
+    }
+    if !status.is_success() {
+        let msg = body.get("error").and_then(Value::as_str).unwrap_or("The server said no");
+        return Err(format!("{msg} ({})", status.as_u16()));
+    }
+    Ok(body)
+}
+
+async fn get_summary(http: &reqwest::Client, base: &str, token: &str) -> Result<Value, String> {
+    let resp = http
+        .get(format!("{base}/app/api/summary"))
+        .header("X-Admin-Token", token)
+        .send()
+        .await
+        .map_err(|e| net_err(&e))?;
+    read_json(resp).await
+}
+
+fn net_err(e: &reqwest::Error) -> String {
+    if e.is_timeout() {
+        "OFFLINE: Smart took too long to answer.".into()
+    } else if e.is_connect() {
+        "OFFLINE: Can't reach Smart. Check the internet connection.".into()
+    } else {
+        format!("OFFLINE: {e}")
+    }
+}
+
+#[tauri::command]
+fn get_config(app: AppHandle) -> ConfigView {
+    ConfigView {
+        base_url: load_config(&app).base_url.unwrap_or_else(|| DEFAULT_BASE.to_string()),
+        connected: read_token().is_some(),
+        default_base: DEFAULT_BASE,
+    }
+}
+
+/// Checks the address and token against the live summary before keeping either.
+#[tauri::command]
+async fn save_connection(app: AppHandle, http: State<'_, Http>, base_url: String, token: String) -> Result<Value, String> {
+    let base = clean_base(&base_url)?;
+    let token = token.trim().to_string();
+    if token.is_empty() {
+        return Err("Paste the admin token first.".into());
+    }
+    let summary = match get_summary(&http.0, &base, &token).await {
+        Err(e) if e == "BAD_TOKEN" => return Err("Smart answered, but didn't accept that token.".into()),
+        Err(e) => return Err(e.trim_start_matches("OFFLINE: ").to_string()),
+        Ok(v) => v,
+    };
+    if summary.get("routing").is_none() {
+        return Err("That address answered, but it isn't a Smart server.".into());
+    }
+    entry()?.set_password(&token).map_err(|e| format!("Couldn't save to the keychain: {e}"))?;
+    save_config(&app, &StoredConfig { base_url: Some(base) })?;
+    Ok(summary)
+}
+
+#[tauri::command]
+async fn summary(app: AppHandle, http: State<'_, Http>) -> Result<Value, String> {
+    let (base, token) = current(&app)?;
+    get_summary(&http.0, &base, &token).await
+}
+
+#[tauri::command]
+async fn action(app: AppHandle, http: State<'_, Http>, body: Value) -> Result<Value, String> {
+    if body.get("action").and_then(Value::as_str).is_none() {
+        return Err("No action given.".into());
+    }
+    let (base, token) = current(&app)?;
+    let resp = http
+        .0
+        .post(format!("{base}/app/api/action"))
+        .header("X-Admin-Token", token)
+        .json(&body)
+        .send()
+        .await
+        .map_err(|e| net_err(&e))?;
+    read_json(resp).await
+}
+
+/// Signs out: removes the token from the keychain. The address stays for next time.
+#[tauri::command]
+fn forget() -> Result<(), String> {
+    match entry()?.delete_credential() {
+        Ok(()) | Err(keyring::Error::NoEntry) => Ok(()),
+        Err(e) => Err(format!("Couldn't remove the token: {e}")),
+    }
+}
+
+#[cfg_attr(mobile, tauri::mobile_entry_point)]
+pub fn run() {
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(25))
+        .user_agent(concat!("Smart-Desktop/", env!("CARGO_PKG_VERSION")))
+        .build()
+        .expect("http client");
+    tauri::Builder::default()
+        .plugin(tauri_plugin_notification::init())
+        .manage(Http(client))
+        .invoke_handler(tauri::generate_handler![get_config, save_connection, summary, action, forget])
+        .run(tauri::generate_context!())
+        .expect("error while running Smart");
+}
