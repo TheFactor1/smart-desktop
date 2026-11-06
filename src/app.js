@@ -57,7 +57,7 @@ function toast(msg, bad) {
 function confirmBox(text, yes) {
   return new Promise((resolve) => {
     const wrap = document.createElement('div');
-    wrap.innerHTML = '<div class="scrim"></div><div class="drawer narrow" role="alertdialog" style="top:30%;right:50%;transform:translateX(50%)"><div class="drawer-body"><p style="font-size:15px">' + esc(text) + '</p><div style="display:flex;gap:10px;justify-content:flex-end"><button class="ghost" data-a="no">Cancel</button><button class="primary" data-a="yes">' + esc(yes || 'Yes, do it') + '</button></div></div></div>';
+    wrap.innerHTML = '<div class="scrim"></div><div class="drawer narrow dialog" role="alertdialog"><div class="drawer-body"><p style="font-size:15px">' + esc(text) + '</p><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px"><button class="ghost" data-a="no">Cancel</button><button class="primary" data-a="yes">' + esc(yes || 'Yes, do it') + '</button></div></div></div>';
     document.body.appendChild(wrap);
     const done = (v) => { wrap.remove(); document.removeEventListener('keydown', key); resolve(v); };
     const key = (e) => { if (e.key === 'Escape') done(false); };
@@ -135,7 +135,7 @@ function showConnect(msg) {
   $('refreshBtn').hidden = true;
   $('settingsBtn').hidden = true;
   setOffline('');
-  $('connectErr').textContent = msg || '';
+  $('connectErr').innerHTML = msg ? shape('caution') + '<span>' + esc(msg) + '</span>' : '';
   $('tokenInput').value = '';
   setTimeout(() => ($('baseInput').value ? $('tokenInput') : $('baseInput')).focus(), 50);
 }
@@ -164,7 +164,7 @@ async function connect(e) {
     loadOpts(true);
     toast('Connected. The token is in the keychain.');
   } catch (err) {
-    $('connectErr').textContent = String(err && err.message || err);
+    $('connectErr').innerHTML = shape('warning') + '<span>' + esc(String(err && err.message || err)) + '</span>';
   } finally {
     btn.disabled = false;
     btn.textContent = 'Connect';
@@ -189,6 +189,7 @@ async function signOut() {
 function closeDrawers() {
   $('scrim').hidden = true;
   $('drawer').hidden = true;
+  $('drawerFoot').hidden = true;
   $('settings').hidden = true;
   openHousehold = null;
 }
@@ -269,7 +270,7 @@ function renderState() {
   chip.hidden = false;
   let line, label, cls;
   if (r.pinned) { line = 'Pinned to Usenet by hand'; label = 'PINNED'; cls = 'chip m'; }
-  else if (r.status === 'down') { line = 'TorBox down' + (r.downSince ? ' since ' + clock(r.downSince) : '') + ', on Usenet'; label = 'DETOUR'; cls = 'chip o'; }
+  else if (r.status === 'down') { line = 'TorBox down' + (r.downSince ? ' since ' + clock(r.downSince) : '') + ', on Usenet'; label = 'DETOUR'; cls = 'chip r'; }
   else if (data.maintenance) { line = 'TorBox maintenance: ' + data.maintenance.title; label = 'MAINTENANCE'; cls = 'chip m'; }
   else { line = 'All systems go'; label = 'ON COURSE'; cls = 'chip'; }
   $('stateLine').textContent = line;
@@ -286,7 +287,7 @@ function renderAttitude() {
   const hy = Math.min(150, Math.max(30, horizon));
   const label = t.total ? torPct + '%' : '—';
   $('attitude').innerHTML =
-    '<svg viewBox="0 0 180 180" width="190" role="img" aria-label="' + (t.total ? torPct + ' percent of today\'s searches on TorBox, ' + (100 - torPct) + ' percent on Usenet' : 'No searches yet today') + '">' +
+    '<svg class="att" viewBox="0 0 180 180" width="192" role="img" aria-label="' + (t.total ? torPct + ' percent of today\'s searches on TorBox, ' + (100 - torPct) + ' percent on Usenet' : 'No searches yet today') + '">' +
     '<defs><clipPath id="atc"><circle cx="90" cy="90" r="70"/></clipPath></defs>' +
     '<g clip-path="url(#atc)"><rect x="0" y="0" width="180" height="' + hy + '" fill="#2A9D8F"/><rect x="0" y="' + hy + '" width="180" height="' + (180 - hy) + '" fill="#D1593A"/>' +
     '<line x1="0" y1="' + hy + '" x2="180" y2="' + hy + '" stroke="#fff" stroke-width="2"/>' +
@@ -294,10 +295,10 @@ function renderAttitude() {
     '<circle cx="90" cy="90" r="70" fill="none" stroke="#2B2118" stroke-width="6"/>' +
     '<g stroke="#2B2118" stroke-width="2"><line x1="90" y1="8" x2="90" y2="16"/><line x1="49" y1="19" x2="53" y2="26"/><line x1="131" y1="19" x2="127" y2="26"/><line x1="19" y1="49" x2="26" y2="53"/><line x1="161" y1="49" x2="154" y2="53"/></g>' +
     '<path d="M60 92 H82 L90 100 L98 92 H120" fill="none" stroke="#F4ECD8" stroke-width="4" stroke-linejoin="round"/>' +
-    '<text x="90" y="56" text-anchor="middle" fill="#fff" font-family="B612" font-weight="700" font-size="21">' + label + '</text>' +
-    '<text x="90" y="72" text-anchor="middle" fill="#fff" font-family="Jost" font-size="10" letter-spacing="2">TORBOX</text>' +
-    (t.total ? '<text x="90" y="150" text-anchor="middle" fill="#fff" font-family="Jost" font-size="10" letter-spacing="2" ' + (hy > 138 ? 'opacity="0"' : '') + '>USENET ' + (100 - torPct) + '%</text>' : '') +
-    '</svg>';
+    '<text x="90" y="62" text-anchor="middle" fill="#fff" font-family="B612" font-weight="700" font-size="24">' + label + '</text>' +
+    '</svg>' +
+    '<div class="readouts">' + ro('Today on TorBox', t.total ? torPct + '%' : 'no searches') + ro('Today on Usenet', t.total ? (100 - torPct) + '%' : '—') +
+    (weekShare() != null ? ro('7-day TorBox share', weekShare() + '%') + '<div class="delta">Today is <b>' + (t.total ? signed(torPct - weekShare()) + ' points' : 'not counted yet') + '</b> against the 7-day share.</div>' : '') + '</div>';
 }
 
 function ro(label, value, bad) {
@@ -320,13 +321,56 @@ function renderReadouts() {
 
 function renderCounts() {
   const t = totals();
-  const week = data.weekly && data.weekly.torbox ? data.weekly.torbox.uptimePct : data.uptime7d;
+  const tb = data.weekly && data.weekly.torbox;
+  const week = tb ? tb.uptimePct : data.uptime7d;
+  const all = byNow(null), failed = byNow((s) => s.outcome === 'failed'), resc = byNow((s) => s.outcome === 'rescued' || s.outcome === 'topped_up');
+  const usenetAvg = weekAvg((h) => (h.fallback || 0) + (h.forced || 0));
+  const failedN = t.failed;
   $('counts').innerHTML =
-    '<div><div class="cap">SEARCHES</div><div class="big">' + t.total + '</div></div>' +
-    '<div><div class="cap">ON USENET</div><div class="mid-n">' + (t.fallback + t.forced) + '</div></div>' +
-    '<div><div class="cap">RESCUED</div><div class="mid-n">' + (t.rescued + t.toppedUp) + '</div></div>' +
-    '<div><div class="cap">FAILED</div><div class="mid-n' + (t.failed ? ' o' : '') + '">' + t.failed + '</div></div>' +
-    (week != null ? '<div><div class="cap">WEEK UPTIME</div><div class="mid-n">' + week.toFixed(1) + '%</div></div>' : '');
+    '<div class="count"><div class="cap">SEARCHES TODAY</div><div class="big">' + t.total + '</div><div class="delta">' + vsLine(all, weekAvg((h) => h.total || 0)) + '</div></div>' +
+    '<div class="count"><div class="cap">ON USENET</div><div class="mid-n">' + (t.fallback + t.forced) + '</div><div class="delta">' + vsLine(null, usenetAvg) + '</div></div>' +
+    '<div class="count"><div class="cap">RESCUED</div><div class="mid-n">' + (t.rescued + t.toppedUp) + '</div><div class="delta">' + vsLine(resc, weekAvg((h) => (h.rescued || 0) + (h.toppedUp || 0))) + '</div></div>' +
+    '<div class="count"><div class="cap">FAILED</div><div class="mid-n' + (failedN ? ' r' : '') + '">' + (failedN ? shape('warning') : '') + failedN + '</div><div class="delta">' + vsLine(failed, weekAvg((h) => h.failed || 0)) + '</div></div>' +
+    '';
+}
+
+// ---------- comparisons: every number gets a period and a change ----------
+const signed = (n) => (n > 0 ? '+' : n < 0 ? '\u2212' : '\u00b1') + Math.abs(n);
+// Today so far against yesterday up to the same time, from the search log, but only
+// when the log reaches back to yesterday's midnight (it keeps the newest 150).
+function byNow(pred) {
+  const list = data.searches || [];
+  if (!list.length) return null;
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const yStart = todayStart - 86400000, yNow = now.getTime() - 86400000;
+  let oldest = Infinity, t = 0, y = 0;
+  for (const s of list) {
+    const at = Date.parse(s.at);
+    if (at < oldest) oldest = at;
+    if (pred && !pred(s)) continue;
+    if (at >= todayStart) t++;
+    else if (at >= yStart && at <= yNow) y++;
+  }
+  return oldest <= yStart ? { today: t, yesterday: y } : null;
+}
+// The 7-day per-day average of one figure, from the weekly households.
+function weekAvg(get) {
+  const hs = (data.weekly && data.weekly.households) || [];
+  if (!hs.length) return null;
+  return Math.round(hs.reduce((m, h) => m + get(h), 0) / 7);
+}
+function weekShare() {
+  const hs = (data.weekly && data.weekly.households) || [];
+  const tot = hs.reduce((m, h) => m + (h.total || 0), 0);
+  if (!tot) return null;
+  const off = hs.reduce((m, h) => m + (h.fallback || 0) + (h.forced || 0), 0);
+  return Math.round(100 * (1 - off / tot));
+}
+function vsLine(cmp, avg) {
+  if (cmp) return '<b>' + signed(cmp.today - cmp.yesterday) + '</b> vs yesterday by now';
+  if (avg != null) return 'Today · 7-day avg <b>' + avg + '</b> a day';
+  return 'Today';
 }
 
 function alarms() {
@@ -360,7 +404,7 @@ function renderAlarms() {
   const el = $('alarms');
   if (!list.length) { el.innerHTML = '<div class="calm">' + shape('note') + '<span><b>Nothing needs a look.</b> Alerts and problems show up here.</span></div>'; return; }
   el.innerHTML = list.map((a, i) => '<div class="alarm">' + shape(a.level) + '<div class="txt">' + esc(a.text) +
-    (a.buttons && a.buttons.length ? '<div>' + a.buttons.map((b, j) => '<button data-alarm="' + i + '" data-btn="' + j + '">' + esc(b.label) + '</button>').join('') + '</div>' : '') +
+    (a.buttons && a.buttons.length ? '<div class="btns">' + a.buttons.map((b, j) => '<button class="ghost" data-alarm="' + i + '" data-btn="' + j + '">' + esc(b.label) + '</button>').join('') + '</div>' : '') +
     '</div>' + (a.at ? '<span class="when">' + clock(a.at) + '</span>' : '') + '</div>').join('');
   el.querySelectorAll('button[data-alarm]').forEach((b) => {
     const a = list[+b.dataset.alarm], btn = a.buttons[+b.dataset.btn];
@@ -391,6 +435,11 @@ function qualityChip(h) {
   return u.auto ? 'Auto · ' + (u.summary || '') : (u.name || '');
 }
 
+function hhDelta(name) {
+  const c = byNow((s) => s.profile === name);
+  return c ? 'today, ' + signed(c.today - c.yesterday) + ' vs yest.' : 'today';
+}
+
 function renderHouseholds() {
   const el = $('households');
   const list = data.households || [];
@@ -403,10 +452,10 @@ function renderHouseholds() {
     let flags = '';
     if (t.failed) flags += '<span class="flag">' + shape('warning') + ' ' + t.failed + ' failed</span>';
     else if (t.slow) flags += '<span class="flag">' + shape('caution') + ' ' + t.slow + ' slow</span>';
-    return '<button class="hh" data-i="' + i + '"><div class="row" style="margin:0"><b>' + esc(h.name) + '</b><span class="n">' + (t.total || 0) + '</span></div>' +
+    return '<button class="hh" data-i="' + i + '"><div class="row"><b>' + esc(h.name) + '</b><span class="n"><span>' + (t.total || 0) + '</span><small>' + esc(hhDelta(h.name)) + '</small></span></div>' +
       '<small>' + esc(setup || (opts ? 'No TV on file' : '…')) + '</small>' +
       '<small>Active ' + esc(ago(h.lastActive)) + '</small>' +
-      '<div class="row">' + (noTv ? '<span class="chip o">▲ Add TV</span>' : q ? '<span class="chip">' + esc(q) + '</span>' : '') +
+      '<div class="row chips">' + (noTv ? '<span class="chip m">' + shape('caution') + 'Add their TV</span>' : q ? '<span class="chip">' + esc(q) + '</span>' : '') +
       (h.forcedNext ? '<span class="chip m">NEXT → USENET</span>' : '') + flags + '</div></button>';
   }).join('');
   el.querySelectorAll('.hh').forEach((b) => { b.onclick = () => openHouseholdDrawer(list[+b.dataset.i].name); });
@@ -443,7 +492,9 @@ function renderTape() {
     h += '<span class="cur' + (cur > 1500 ? ' bad' : '') + '">' + cur + '</span>';
     h += '<span class="dim">' + r10(cur - step) + '</span><span class="dim">' + r10(cur - 2 * step) + '</span>';
   }
-  h += '<span class="unit">MS · LAST CHECK</span>';
+  const okPings = checks.filter((p) => p.up && p.pingMs != null).map((p) => p.pingMs);
+  const avgPing = okPings.length ? Math.round(okPings.reduce((a, b) => a + b, 0) / okPings.length) : null;
+  h += '<span class="unit">MS · LAST CHECK' + (cur != null && avgPing != null ? '<br>' + signed(cur - avgPing) + ' VS AVG ' + avgPing : '') + '</span>';
   // A little trace of the last 48 checks, oldest on the left.
   const pts = checks.slice().reverse();
   if (pts.length > 1) {
@@ -500,7 +551,7 @@ function renderPaper() {
   const now = new Date();
   const dayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
   const x = (ms) => ((ms - dayStart) / 86400000) * W;
-  const total = Math.max(10, today.length);
+  const total = Math.max(10, Math.ceil(today.length * 1.25));
   const y = (n) => bottom - (n / total) * (bottom - top);
   let g = '<g stroke="#ead9b8">';
   for (let i = 1; i < 24; i++) g += '<line x1="' + x(dayStart + i * 3600000) + '" y1="' + top + '" x2="' + x(dayStart + i * 3600000) + '" y2="' + bottom + '"/>';
@@ -534,8 +585,8 @@ function renderPaper() {
   }
   $('paper').innerHTML = '<div class="cap" style="display:flex;justify-content:space-between"><span>CHART PAPER · SEARCHES TODAY</span><span>' + today.length + ' so far</span></div>' +
     '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Searches through the day: ' + today.length + ' so far, ' + fails.length + ' found nothing">' +
-    g + notes + '<path d="' + d + '" fill="none" stroke="#D1593A" stroke-width="2" vector-effect="non-scaling-stroke"/>' + marks +
-    '<circle cx="' + xn + '" cy="' + y(n) + '" r="3.5" fill="#D1593A"/>' + labels + '</svg>';
+    g + notes + '<path d="' + d + '" fill="none" stroke="#2B2118" stroke-width="2"/>' + marks +
+    '<circle cx="' + xn + '" cy="' + y(n) + '" r="4" fill="#2B2118"/>' + labels + '</svg>';
 }
 
 // ---------- household drawer ----------
@@ -548,6 +599,7 @@ async function openHouseholdDrawer(name) {
   $('scrim').hidden = false;
   $('drawer').hidden = false;
   $('drawerBody').innerHTML = '<div class="hint">Loading…</div>';
+  $('drawerFoot').hidden = true;
   try {
     if (!tvOptions) { const r = await act({ action: 'tv_options' }); if (r && r.ok) tvOptions = r; }
     if (!opts) await loadOpts();
@@ -573,16 +625,17 @@ function renderDrawer() {
   const groups = [...new Set(tvo.boxes.map((b) => b.group))];
 
   $('drawerBody').innerHTML =
+    '<div class="cap">TODAY · ' + esc(hhDelta(name).replace(/^today,? ?/, '') || 'so far') + '</div>' +
     '<div class="stats">' +
       '<div class="stat"><b>' + (t.total || 0) + '</b><span>searches</span></div>' +
       '<div class="stat"><b>' + ((t.fallback || 0) + (t.forced || 0)) + '</b><span>on Usenet</span></div>' +
       '<div class="stat"><b>' + ((t.rescued || 0) + (t.toppedUp || 0)) + '</b><span>rescued</span></div>' +
-      '<div class="stat"><b style="color:' + (t.failed ? '#B3261E' : 'inherit') + '">' + (t.failed || 0) + '</b><span>failed</span></div>' +
+      '<div class="stat"><b style="color:' + (t.failed ? '#B3261E' : 'inherit') + '">' + (t.failed ? shape('warning') + ' ' : '') + (t.failed || 0) + '</b><span>failed</span></div>' +
     '</div>' +
     '<p class="hint">Last active ' + esc(ago(h.lastActive)) + (h.jellyfin ? ' · Jellyfin login on' : '') + '</p>' +
-    '<div class="toggle"><span><b>Next search on Usenet</b><small>' + (h.forcedNext ? 'On: their next search skips TorBox.' : 'Off: searches go the normal way.') + '</small></span>' +
+    '<div class="toggle gap-top"><span><b>Next search on Usenet</b><small>' + (h.forcedNext ? 'On: their next search skips TorBox.' : 'Off: searches go the normal way.') + '</small></span>' +
       '<button class="ghost" id="forceBtn">' + (h.forcedNext ? 'Turn off' : 'Turn on') + '</button></div>' +
-    '<label>USENET QUALITY<select id="qualitySel">' +
+    '<label class="gap-top">USENET QUALITY<select id="qualitySel">' +
       '<option value="auto"' + (choice === 'auto' ? ' selected' : '') + '>Auto, from their TV' + (tvInfo.using && tvInfo.using.auto ? ' (' + esc(tvInfo.using.summary) + ')' : '') + '</option>' +
       profiles.map((p) => '<option value="' + esc(p.id) + '"' + (choice === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('') +
     '</select></label>' +
@@ -600,10 +653,10 @@ function renderDrawer() {
         tvo.sounds.map((s) => '<option value="' + esc(s.id) + '"' + (draft.sound === s.id ? ' selected' : '') + '>' + esc(s.name) + '</option>').join('') +
       '</select></label>' +
     '</div>' +
-    '<div id="checkOut"></div>' +
-    '<div style="display:flex;gap:10px;justify-content:space-between;flex-wrap:wrap">' +
-      (tvInfo.setup ? '<button class="ghost danger" id="tvClear">Remove TV</button>' : '<span></span>') +
-      '<button class="primary" id="tvSave">Save TV setup</button></div>';
+    '<div id="checkOut"></div>';
+  $('drawerFoot').hidden = false;
+  $('drawerFoot').innerHTML = (tvInfo.setup ? '<button class="ghost danger" id="tvClear">Remove TV</button>' : '<span></span>') +
+      '<button class="primary" id="tvSave">Save TV setup</button>';
 
   $('forceBtn').onclick = (e) => runAction({ action: h.forcedNext ? 'unforce' : 'force', household: name }, { button: e.target }).then(() => refreshDrawerSoon());
   $('qualitySel').onchange = async (e) => {
@@ -645,7 +698,7 @@ function checkSoon(delay) {
 async function runCheck() {
   const out = $('checkOut');
   if (!out) return;
-  if (!Object.keys(draft).length) { out.innerHTML = '<p class="hint">' + shape('caution') + ' No TV on file. Add it so Auto can pick the right quality.</p>'; return; }
+  if (!Object.keys(draft).length) { out.innerHTML = '<p class="hint flex">' + shape('caution') + ' No TV on file. Add it so Auto can pick the right quality.</p>'; return; }
   const seq = ++checkSeq;
   let r;
   try { r = await act({ action: 'tv_check', setup: draft }); } catch (e) { return handleError(e); }

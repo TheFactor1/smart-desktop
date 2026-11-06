@@ -29,7 +29,7 @@
     backupProfiles: [{ id: '4k', name: '4K Balanced' }, { id: 'safe', name: '1080p Safe' }],
     failures: [{ at: ago(42), profile: 'Household C', outcome: 'failed', reason: 'no results', what: 'Severance S2E4' }],
     searches, checks,
-    week: '', weekly: { attention: [], torbox: { uptimePct: 99.6, outages: 1, downMinutes: 38, longestMinutes: 38, longestCause: 'API timeouts', asked: 0 }, households: people.map((n, i) => ({ name: n, total: 80 + i * 20, firstTryPct: 96 - i, avgSeconds: 2.1 + i / 5, failed: i === 2 ? 3 : 0 })) },
+    week: '', weekly: { attention: [], torbox: { uptimePct: 99.6, outages: 1, downMinutes: 38, longestMinutes: 38, longestCause: 'API timeouts', asked: 0 }, households: people.map((n, i) => ({ name: n, total: 80 + i * 20, fallback: 6 + i, forced: i, rescued: 4, toppedUp: 2, firstTryPct: 96 - i, avgSeconds: 2.1 + i / 5, failed: i === 2 ? 3 : 0 })) },
     uptime7d: 99.6,
     usenet: { at: ago(300), text: 'Usenet healthy: 4 of 4 providers answering', stale: false, problems: [] },
     inbox: [{ at: ago(70), text: 'TorBox back up after 38 min on Usenet.', buttons: [] }],

@@ -30,10 +30,10 @@
       <h1>Connect to your Smart</h1>
       <p>Smart runs on the web. This app reads it with your admin token, which is kept in this computer's keychain and never shown again.</p>
       <form id="connectForm" autocomplete="off">
-        <label>Web address<input id="baseInput" spellcheck="false" placeholder="https://smart.example.com"></label>
+        <label>Web address<input id="baseInput" type="url" inputmode="url" spellcheck="false" placeholder="https://smart.example.com"></label>
         <label>Admin token<input id="tokenInput" type="password" spellcheck="false" placeholder="Paste the admin token"></label>
         <div class="err" id="connectErr" role="alert"></div>
-        <button class="primary" id="connectBtn" type="submit">Connect</button>
+        <button class="primary wide" id="connectBtn" type="submit">Connect</button>
       </form>
       <p class="fine">Setting up a new Smart server from here is coming later.</p>
     </div>
@@ -44,7 +44,7 @@
     <section class="col inst">
       <div class="cap">ROUTE ATTITUDE</div>
       <div id="attitude"></div>
-      <div class="hint center">Sky is TorBox, ground is Usenet. The more ground, the worse the day.</div>
+      <div class="hint">Sky is TorBox, ground is Usenet. The more ground, the worse the day.</div>
       <div class="readouts" id="readouts"></div>
     </section>
 
@@ -77,6 +77,7 @@
 <aside class="drawer" id="drawer" hidden aria-labelledby="drawerTitle">
   <div class="drawer-head"><h2 id="drawerTitle"></h2><button class="icon-btn" id="drawerClose" aria-label="Close">×</button></div>
   <div class="drawer-body" id="drawerBody"></div>
+  <div class="drawer-foot" id="drawerFoot" hidden></div>
 </aside>
 
 <!-- Connection dialog -->
