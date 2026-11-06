@@ -45,6 +45,47 @@ async function call(cmd, args) {
 }
 const act = (body) => call('action', { body });
 
+// ---------- titles ----------
+// The Worker only names a search when it happened to know the title, so the log often
+// holds bare ids like "tt0903747 S2E4". The app asks Cinemeta once per id (in Rust,
+// cached on disk) and keeps the answers here too so the first paint already has them.
+const NAMES_KEY = 'smart-titles';
+let names = {};
+try { names = JSON.parse(localStorage.getItem(NAMES_KEY) || '{}') || {}; } catch (e) { names = {}; }
+const ID_RE = /^(tt\d{1,10})(.*)$/;
+function searchName(s) {
+  if (s.title) return s.title;
+  const m = ID_RE.exec(s.what || '');
+  if (m && names[m[1]]) return names[m[1]] + m[2];
+  return s.what || 'search';
+}
+let naming = false;
+async function nameSearches() {
+  if (naming || !data) return;
+  const want = new Map();
+  for (const s of [].concat(data.searches || [], data.failures || [])) {
+    const m = !s.title && ID_RE.exec(s.what || '');
+    if (m && !(m[1] in names) && !want.has(m[1])) want.set(m[1], /\b[SE]\d/.test(m[2]) ? 'series' : 'movie');
+  }
+  if (!want.size) return;
+  naming = true;
+  try {
+    const ids = [...want].slice(0, 60).map(([id, kind]) => ({ id, kind }));
+    const got = T ? await call('titles', { ids }) : Object.fromEntries(ids.map((x) => [x.id, 'Example ' + x.id.slice(-3)]));
+    let changed = false;
+    for (const [id, n] of Object.entries(got || {})) if (n && names[id] !== n) { names[id] = n; changed = true; }
+    if (changed) {
+      try { localStorage.setItem(NAMES_KEY, JSON.stringify(names)); } catch (e) {}
+      renderLog();
+      renderPaper();
+    }
+  } catch (e) {
+    // Cinemeta unreachable: keep the ids for now, try again on the next refresh.
+  } finally {
+    naming = false;
+  }
+}
+
 // ---------- state ----------
 let data = null;
 let opts = null;          // backup_profiles: quality names and decoded TV setups
@@ -280,6 +321,7 @@ async function refresh(manual) {
     setOffline('');
     setStale(false);
     render();
+    nameSearches();
     if (!tvOptions) prefetchTv();
     notifyFlip();
     if (Date.now() - optsAt > OPTS_MS) loadOpts();
@@ -560,7 +602,7 @@ function renderLog() {
   if (!list.length) { $('log').innerHTML = '<div class="hint">No searches yet.</div>'; return; }
   $('log').innerHTML = list.map((s) => {
     const o = OUTCOME[s.outcome] || [null, s.outcome || ''];
-    return '<div class="e"><span class="t">' + clock(s.at) + '</span><span class="w"><b>' + esc(s.profile) + '</b> · ' + esc(s.title || s.what || 'search') + '</span><span class="o">' + (o[0] ? shape(o[0]) : '') + esc(o[1]) + (s.ms ? ' · ' + (s.ms / 1000).toFixed(1) + 's' : '') + '</span></div>';
+    return '<div class="e"><span class="t">' + clock(s.at) + '</span><span class="w"><b>' + esc(s.profile) + '</b> · ' + esc(searchName(s)) + '</span><span class="o">' + (o[0] ? shape(o[0]) : '') + esc(o[1]) + (s.ms ? ' · ' + (s.ms / 1000).toFixed(1) + 's' : '') + '</span></div>';
   }).join('');
 }
 
@@ -663,7 +705,7 @@ function renderPaper() {
   if (fails.length) {
     const f = fails[fails.length - 1];
     const fx = Math.max(4, Math.min(W - 300, x(Date.parse(f.at)) - 150));
-    notes += '<text x="' + fx + '" y="' + (top - 2) + '" style="fill:var(--red)" font-family="Courier Prime" font-size="11">' + esc(clock(f.at) + ' ' + f.profile + ': ' + (f.title || f.what || 'search') + ' found nothing') + '</text>';
+    notes += '<text x="' + fx + '" y="' + (top - 2) + '" style="fill:var(--red)" font-family="Courier Prime" font-size="11">' + esc(clock(f.at) + ' ' + f.profile + ': ' + searchName(f) + ' found nothing') + '</text>';
   } else if (data.routing && data.routing.status === 'down' && data.routing.downSince) {
     const dx = Math.max(0, x(Date.parse(data.routing.downSince)));
     notes += '<rect x="' + dx + '" y="' + top + '" width="' + Math.max(2, xn - dx) + '" height="' + (bottom - top) + '" style="fill:var(--ground)" opacity=".12"/>';

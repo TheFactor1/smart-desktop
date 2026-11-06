@@ -12,7 +12,7 @@
   const searches = [];
   for (let i = 0; i < 63; i++) {
     const min = Math.round((i / 63) * (now.getHours() * 60 + now.getMinutes()));
-    searches.push({ at: ago(min), profile: people[i % 4], title: titles[i % titles.length], what: null, outcome: outcomes[i % outcomes.length], results: 12, ms: 2400, reason: null });
+    searches.push({ at: ago(min), profile: people[i % 4], title: i % 5 === 0 ? null : titles[i % titles.length], what: i % 5 === 0 ? 'tt09037' + (40 + i) + (i % 2 ? ' S2E4' : '') : null, outcome: outcomes[i % outcomes.length], results: 12, ms: 2400, reason: null });
   }
   const hh = (name, total, extra) => Object.assign({ name, lastActive: ago(total % 50), forcedNext: false, jellyfin: false, backupProfile: '4k', backupChoice: 'auto', tv: null, today: { total, fallback: Math.round(total / 12), forced: 0, rescued: 2, toppedUp: 1, failed: 0, slow: 0 } }, extra || {});
   const summary = {

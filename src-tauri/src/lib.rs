@@ -6,7 +6,9 @@
 
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::collections::HashMap;
 use std::path::PathBuf;
+use std::sync::Mutex;
 use std::time::Duration;
 use tauri::{AppHandle, Manager, State};
 
@@ -15,6 +17,10 @@ const KEYRING_USER: &str = "admin-token";
 pub const DEFAULT_BASE: &str = "https://smart.mattshosted.com";
 
 struct Http(reqwest::Client);
+
+/// IMDb id -> title, learned from Cinemeta and kept in titles.json next to config.json.
+/// An empty name means Cinemeta has no entry, so it isn't asked again.
+struct Names(Mutex<Option<HashMap<String, String>>>);
 
 #[derive(Serialize, Deserialize, Default, Clone)]
 struct StoredConfig {
@@ -174,6 +180,112 @@ fn forget() -> Result<(), String> {
     }
 }
 
+fn names_path(app: &AppHandle) -> Result<PathBuf, String> {
+    Ok(config_path(app)?.with_file_name("titles.json"))
+}
+
+fn names_load(app: &AppHandle, names: &Names) -> HashMap<String, String> {
+    let mut g = names.0.lock().unwrap();
+    if g.is_none() {
+        let m: HashMap<String, String> = names_path(app)
+            .ok()
+            .and_then(|p| std::fs::read_to_string(p).ok())
+            .and_then(|s| serde_json::from_str(&s).ok())
+            .unwrap_or_default();
+        *g = Some(m);
+    }
+    g.as_ref().unwrap().clone()
+}
+
+#[derive(Deserialize)]
+struct TitleAsk {
+    id: String,
+    kind: String,
+}
+
+fn is_imdb_id(id: &str) -> bool {
+    id.len() > 2 && id.len() <= 12 && id.starts_with("tt") && id[2..].chars().all(|c| c.is_ascii_digit())
+}
+
+/// Ok(None) when Cinemeta has no such title; Err when it couldn't be asked (try again later).
+async fn cinemeta(http: &reqwest::Client, kind: &str, id: &str) -> Result<Option<String>, ()> {
+    let url = format!("https://v3-cinemeta.strem.io/meta/{kind}/{id}.json");
+    let resp = http.get(url).timeout(Duration::from_secs(6)).send().await.map_err(|_| ())?;
+    let status = resp.status();
+    if status.as_u16() == 404 {
+        return Ok(None);
+    }
+    if !status.is_success() {
+        return Err(());
+    }
+    let v: Value = resp.json().await.map_err(|_| ())?;
+    Ok(v.get("meta")
+        .and_then(|m| m.get("name"))
+        .and_then(Value::as_str)
+        .filter(|s| !s.is_empty())
+        .map(|s| s.chars().take(80).collect()))
+}
+
+/// Names for the IMDb ids the search log couldn't name. Looks each id up once.
+#[tauri::command]
+async fn titles(app: AppHandle, http: State<'_, Http>, names: State<'_, Names>, ids: Vec<TitleAsk>) -> Result<HashMap<String, String>, String> {
+    let known = names_load(&app, &names);
+    let mut out = HashMap::new();
+    let mut tasks = Vec::new();
+    for ask in ids.into_iter().take(60) {
+        let id = ask.id.trim().to_string();
+        if !is_imdb_id(&id) {
+            continue;
+        }
+        if let Some(n) = known.get(&id) {
+            if !n.is_empty() {
+                out.insert(id, n.clone());
+            }
+            continue;
+        }
+        let client = http.0.clone();
+        let first = if ask.kind == "series" { "series" } else { "movie" };
+        let second = if first == "series" { "movie" } else { "series" };
+        tasks.push(tauri::async_runtime::spawn(async move {
+            let mut res = cinemeta(&client, first, &id).await;
+            if let Ok(None) = res {
+                res = cinemeta(&client, second, &id).await;
+            }
+            (id, res)
+        }));
+    }
+    let mut learned: Vec<(String, String)> = Vec::new();
+    for t in tasks {
+        if let Ok((id, res)) = t.await {
+            match res {
+                Ok(Some(name)) => {
+                    out.insert(id.clone(), name.clone());
+                    learned.push((id, name));
+                }
+                Ok(None) => learned.push((id, String::new())),
+                Err(()) => {}
+            }
+        }
+    }
+    if !learned.is_empty() {
+        let snapshot = {
+            let mut g = names.0.lock().unwrap();
+            let m = g.get_or_insert_with(HashMap::new);
+            if m.len() > 5000 {
+                m.clear();
+            }
+            for (id, n) in learned {
+                m.insert(id, n);
+            }
+            serde_json::to_string(&*m).unwrap_or_default()
+        };
+        if let Ok(p) = names_path(&app) {
+            let _ = std::fs::write(p, snapshot);
+        }
+    }
+    Ok(out)
+}
+
 /// The page calls this after its first paint, so the window never opens on an empty frame.
 #[tauri::command]
 fn ready(window: tauri::WebviewWindow) {
@@ -191,6 +303,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_notification::init())
         .manage(Http(client))
+        .manage(Names(Mutex::new(None)))
         .setup(|app| {
             // If the page never says it's ready, show the window anyway.
             let handle = app.handle().clone();
@@ -204,7 +317,7 @@ pub fn run() {
             });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![get_config, save_connection, summary, action, forget, ready])
+        .invoke_handler(tauri::generate_handler![get_config, save_connection, summary, action, forget, ready, titles])
         .run(tauri::generate_context!())
         .expect("error while running Smart");
 }

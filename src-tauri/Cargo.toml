@@ -1,6 +1,6 @@
 [package]
 name = "smart-desktop"
-version = "0.1.3"
+version = "0.1.4"
 description = "Smart desktop dashboard"
 authors = ["TheFactor1"]
 license = "MIT"
