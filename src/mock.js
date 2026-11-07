@@ -62,6 +62,15 @@
     action(body) {
       const a = body.action;
       if (a === 'backup_profiles') return { ok: true, backupProfiles: summary.backupProfiles, households: { 'Household A': 'auto', 'Household B': '4k', 'Household C': 'safe', 'Household D': '4k' }, tv: setups, backupTags: tags, backupRes: [480, 720, 1080, 1440, 2160] };
+      if (a === 'problem_reports') {
+        const all = [
+          { at: new Date(Date.now() - 3600e3).toISOString(), profile: 'Household A', title: 'Example Movie (2016)', lines: ['Searched 2 min before: no results', 'Error: Usenet timed out', 'What the sources said:', '• Example indexer: timed out after 8 s', 'Offered just before (2):', '1. Example 2160p · 18 GB · Usenet', '2. Example 1080p · 6 GB · TorBox, ready'] },
+          { at: new Date(Date.now() - 86400e3).toISOString(), profile: 'Household B', title: 'Example Show S01E02', lines: ['No details were saved with this report.'] },
+        ];
+        const shown = body.household ? all.filter((r) => r.profile === body.household) : all;
+        return { ok: true, total: shown.length, households: ['Household A', 'Household B'], reports: shown };
+      }
+      if (a === 'household_base_set') return { ok: true, message: 'Saved. ' + body.household + "'s searches now go to the new link; their install link stays the same." };
       if (a === 'categories') return { ok: true, views: JSON.parse(JSON.stringify(views)), newHidden: false };
       if (a === 'sets') return { ok: true, builtin: [{ id: 'family', name: 'Family night', rows: [{}, {}, {}] }], mine: [] };
       if (a === 'lists_search') return { ok: true, lists: [{ id: 1, name: 'Best of A24', by: 'someone', items: 120, type: 'movie' }, { id: 2, name: 'Cozy mysteries', by: 'other', items: 64, type: 'series' }] };

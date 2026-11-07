@@ -783,7 +783,7 @@ function renderDrawer() {
       profiles.map((p) => '<option value="' + esc(p.id) + '"' + (choice === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('') +
     '</select></label>' +
     '<div id="inside">' + insideHtml(name, choice) + '</div>' +
-    renameHtml(name);
+    renameHtml(name) + linkHtml(name);
   const tvForm =
     '<div class="cap">TV SETUP</div>' +
     '<label>TV MODEL NUMBER<input id="modelIn" spellcheck="false" placeholder="e.g. OLED65C3PUA" value="' + esc(draft.model || '') + '"></label>' +
@@ -812,7 +812,7 @@ function renderDrawer() {
       await runAction({ action: 'household_profile_set', household: name, profile: e.target.value }, { refresh: false });
       await loadOpts(); refresh();
     };
-    bindRename(name);
+    bindRename(name); bindLink(name);
     return;
   }
   $('drawerFoot').hidden = false;

@@ -59,6 +59,18 @@ function renameHtml(name) {
   return '<div class="cap">NAME</div><div class="inline"><input id="renameIn" maxlength="40" spellcheck="false" value="' + esc(name) + '" aria-label="Household name"><button class="ghost" id="renameBtn">Rename</button></div>' +
     '<p class="fine">Their links keep working: Smart remembers the old name.</p>';
 }
+function linkHtml(name) {
+  return '<div class="cap">AIOSTREAMS LINK</div><div class="inline"><input id="linkIn" type="url" spellcheck="false" autocomplete="off" placeholder="Paste their new AIOStreams link" aria-label="New AIOStreams link"><button class="ghost" id="linkBtn">Save link</button></div>' +
+    '<p class="fine">Only for when their AIOStreams setup moved. Their install link in the app stays the same.</p>';
+}
+function bindLink(name) {
+  $('linkBtn').onclick = async (e) => {
+    const base = $('linkIn').value.trim();
+    if (!/^https:\/\//i.test(base)) { toast('The link must start with https://', true); return; }
+    const r = await runAction({ action: 'household_base_set', household: name, base: base }, { button: e.target, refresh: false, confirm: 'Point ' + name + '\'s searches at this AIOStreams link?' });
+    if (r && r.ok !== false) $('linkIn').value = '';
+  };
+}
 function bindRename(name) {
   $('renameBtn').onclick = async (e) => {
     const to = $('renameIn').value.trim();
@@ -315,18 +327,49 @@ function reportItems() {
   };
 }
 
-function renderReportsPanel() {
+// The full list comes from problem_reports; an older Smart without it falls back to the
+// reports inside the weekly list.
+let reportsData = null;   // {reports, households, total, full}
+let reportsFor = '';
+async function loadReports() {
+  try {
+    const r = await act({ action: 'problem_reports', household: reportsFor || undefined, limit: 100 });
+    if (r && r.ok !== false && Array.isArray(r.reports)) { reportsData = { reports: r.reports, households: r.households || [], total: r.total || 0, full: true }; return; }
+  } catch (e) { if (String(e && e.message || e) === 'NOT_CONNECTED') throw e; }
+  const old = reportItems().reports.map((a) => ({ at: null, profile: '', title: a.text, lines: a.log && a.log.length ? a.log : ['No details were saved with this report.'] }));
+  reportsData = { reports: old, households: [], total: old.length, full: false };
+}
+
+function reportHtml(r) {
+  const head = r.profile ? '<b>' + esc(r.profile) + '</b> · ' + esc(r.title || r.rest || 'a title') : esc(r.title);
+  return '<details class="report"><summary class="flex">' + shape('warning') + '<span class="flex1">' + head + '</span>' + (r.at ? '<small class="hint">' + esc(ago(r.at)) + '</small>' : '') + '</summary>' +
+    '<ul class="loglines">' + (r.lines || []).map((l) => '<li' + (/:$/.test(l) ? ' class="sub"' : '') + '>' + esc(l) + '</li>').join('') + '</ul>' +
+    '<button class="ghost sm" data-copy="' + esc([(r.profile ? r.profile + ': ' : '') + (r.title || ''), r.at || ''].concat(r.lines || []).join('\n')) + '">Copy details</button></details>';
+}
+
+async function renderReportsPanel() {
   $('drawerTitle').textContent = 'Problem reports';
+  $('drawerFoot').hidden = true;
   const it = reportItems();
-  $('drawerBody').innerHTML =
-    '<p class="hint">When someone picks "Report a problem" in their app, Smart saves what it saw at that moment.</p>' +
-    (it.reports.length ? it.reports.map((r) => '<div class="report"><b class="flex">' + shape('warning') + ' ' + esc(r.text) + '</b>' + (r.log && r.log.length ? '<ul class="loglines">' + r.log.map((l) => '<li>' + esc(l) + '</li>').join('') + '</ul>' : '<p class="fine">No log was saved with this one.</p>') + '</div>').join('')
-      : '<p class="calm">No problem reports in the last 7 days.</p>') +
+  const body = $('drawerBody');
+  if (!reportsData) {
+    body.innerHTML = '<div class="skel"></div><div class="skel"></div><div class="skel short"></div>';
+    try { await loadReports(); } catch (e) { handleError(e); return; }
+    if (panelMode !== 'reports') return;
+  }
+  const d = reportsData;
+  const filter = d.full && d.households.length > 1
+    ? '<label>Household<select id="repFor"><option value="">Everyone</option>' + d.households.map((h) => '<option' + (h === reportsFor ? ' selected' : '') + '>' + esc(h) + '</option>').join('') + '</select></label>' : '';
+  body.innerHTML =
+    '<p class="hint">When someone picks "Report a problem" in their app, Smart saves what it saw at that moment. Open one to see it.</p>' + filter +
+    (d.reports.length ? d.reports.map(reportHtml).join('') + (d.total > d.reports.length ? '<p class="fine">Showing the newest ' + d.reports.length + ' of ' + d.total + '.</p>' : '')
+      : '<p class="calm">No problem reports' + (reportsFor ? ' from ' + esc(reportsFor) : '') + (d.full ? '' : ' in the last 7 days') + '.</p>') +
     '<div class="cap">FAILED SEARCHES</div>' +
     (it.failures.length ? '<div class="log">' + it.failures.map((f) => '<div class="e"><span class="t">' + esc(clock(f.at)) + '</span><span class="w"><b>' + esc(f.profile) + '</b> · ' + esc(searchName(f)) + (f.reason ? '<small class="why">' + esc(f.reason) + '</small>' : '') + '</span><span class="o">' + esc(OUTCOME[f.outcome] ? OUTCOME[f.outcome][1] : f.outcome) + '</span></div>').join('') + '</div>'
       : '<p class="hint">None recently.</p>') +
     (it.other.length ? '<div class="cap">ALSO NEEDS A LOOK</div><ul class="loglines">' + it.other.map((a) => '<li>' + esc(a.text) + '</li>').join('') + '</ul>' : '');
-  $('drawerFoot').hidden = true;
+  bindCopy(body);
+  if ($('repFor')) $('repFor').onchange = () => { reportsFor = $('repFor').value; reportsData = null; renderReportsPanel(); };
 }
 
 // Under the knobs: the two panels that aren't about one household.
@@ -336,5 +379,5 @@ function renderTools() {
     '<button class="tool" id="toolQuality"><b>Usenet quality</b><small>See and edit what each profile looks for</small></button>' +
     '<button class="tool" id="toolReports"><b>Problem reports' + (n ? ' · ' + n : '') + '</b><small>' + (n ? 'With what Smart saw at the time' : 'None in the last 7 days') + '</small></button>';
   $('toolQuality').onclick = () => { qEdit = null; openSidePanel('quality'); };
-  $('toolReports').onclick = () => openSidePanel('reports');
+  $('toolReports').onclick = () => { reportsData = null; reportsFor = ''; openSidePanel('reports'); };
 }
