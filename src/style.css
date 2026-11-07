@@ -357,3 +357,8 @@ html.down[data-theme=night] .inst svg.att{filter:drop-shadow(0 0 24px rgba(251,1
 .tool{display:flex;flex-direction:column;align-items:flex-start;gap:var(--s1);text-align:left;min-height:44px;padding:var(--s2) var(--s3);border-radius:14px;background:var(--frost,var(--card));border:1px solid var(--hair,var(--ink))}
 .tool:hover{border-color:var(--hair-b,var(--ink))}
 .tool small{font-size:12px;color:var(--moon-dim,var(--walnut))}
+
+/* WebKitGTK paints native selects with the light GTK theme, so draw our own. */
+select{-webkit-appearance:none;appearance:none;padding-right:44px;background-repeat:no-repeat;background-position:right 16px center;background-size:12px 8px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23888' stroke-width='2'/%3E%3C/svg%3E")}
+[data-theme=night]{color-scheme:dark}
+[data-theme=night] select{background-color:var(--well);background-repeat:no-repeat;background-position:right 16px center;background-size:12px 8px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23c4b5fd' stroke-width='2'/%3E%3C/svg%3E")}
